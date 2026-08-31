@@ -1,0 +1,7 @@
+{
+  "name": "Power OS",
+  "description": "Live OTA System Updater and GitHub release client for Power OS on Oppo A6X.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
