@@ -61,11 +61,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.OtaConstants
-import com.example.data.model.OtaRelease
 import com.example.ui.AppSubstance
 import com.example.ui.UpdaterViewModel
 import com.example.ui.client.PowerOsClientScreen
-import com.example.ui.dialogs.CreateReleaseDialog
 import com.example.ui.dialogs.DeviceSpecsDialog
 import com.example.ui.dialogs.LocalPackageInstallDialog
 import com.example.ui.dialogs.RecoveryInstallDialog
@@ -77,6 +75,7 @@ import com.example.ui.theme.GlassPrimary
 import com.example.ui.theme.GlassSecondary
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.NaturalLightBackground
+import com.example.ui.theme.NaturalLightCardBackground
 import com.example.ui.theme.NaturalLightTextMuted
 import com.example.ui.theme.NaturalLightTextPrimary
 import com.example.ui.theme.NaturalLightTextSecondary
@@ -132,17 +131,17 @@ class MainActivity : ComponentActivity() {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
                                         modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(RoundedCornerShape(12.dp))
+                                            .size(44.dp)
+                                            .clip(RoundedCornerShape(14.dp))
                                             .background(
                                                 Brush.linearGradient(
                                                     listOf(
-                                                        GlassPrimary.copy(alpha = 0.16f),
+                                                        GlassPrimary.copy(alpha = 0.18f),
                                                         GlassSecondary.copy(alpha = 0.12f)
                                                     )
                                                 )
                                             )
-                                            .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp)),
+                                            .border(1.dp, Color.White.copy(alpha = 0.9f), RoundedCornerShape(14.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
@@ -156,7 +155,10 @@ class MainActivity : ComponentActivity() {
                                     Column {
                                         Text(
                                             text = "Power OS",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.4.sp
+                                            ),
                                             color = NaturalLightTextPrimary
                                         )
                                         Text(
@@ -181,15 +183,15 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             // Dual Substance Switcher (Client Updater vs GitHub Server Portal)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(Color.White.copy(alpha = 0.8f))
-                                    .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(16.dp))
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(Color.White.copy(alpha = 0.75f))
+                                    .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(20.dp))
                                     .padding(4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
@@ -197,7 +199,12 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .shadow(
+                                            elevation = if (isClient) 4.dp else 0.dp,
+                                            shape = RoundedCornerShape(16.dp),
+                                            spotColor = GlassPrimary.copy(alpha = 0.3f)
+                                        )
+                                        .clip(RoundedCornerShape(16.dp))
                                         .background(
                                             if (isClient) {
                                                 Brush.horizontalGradient(
@@ -234,7 +241,12 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .shadow(
+                                            elevation = if (isServer) 4.dp else 0.dp,
+                                            shape = RoundedCornerShape(16.dp),
+                                            spotColor = GlassSecondary.copy(alpha = 0.3f)
+                                        )
+                                        .clip(RoundedCornerShape(16.dp))
                                         .background(
                                             if (isServer) {
                                                 Brush.horizontalGradient(
@@ -299,7 +311,9 @@ class MainActivity : ComponentActivity() {
                                         onOpenInstallDialog = { viewModel.openInstallDialog(it) },
                                         onOpenDeviceSpecs = { viewModel.setDeviceDetailOpen(true) },
                                         onOpenHistory = { viewModel.setHistoryOpen(true) },
-                                        onOpenLocalInstall = { viewModel.setLocalInstallOpen(true) }
+                                        onOpenLocalInstall = { viewModel.setLocalInstallOpen(true) },
+                                        onOpenSettings = { viewModel.setServerApiInspectorOpen(true) },
+                                        onResetUpdateState = { viewModel.resetUpdateState() }
                                     )
                                 }
 
@@ -307,13 +321,9 @@ class MainActivity : ComponentActivity() {
                                     OtaServerScreen(
                                         releases = allReleases,
                                         serverUrl = serverUrl,
-                                        onOpenCreateRelease = { viewModel.setCreateReleaseOpen(true) },
                                         onOpenApiInspector = { viewModel.setServerApiInspectorOpen(true) },
-                                        onToggleStatus = { viewModel.toggleReleaseStatus(it) },
+                                        onRefreshSync = { viewModel.checkForUpdates() },
                                         onDeleteRelease = { viewModel.deleteRelease(it) },
-                                        onQuickPublishPreset = { name, code, ch, type, mb, notes ->
-                                            viewModel.publishNewRelease(name, code, ch, type, mb, notes, false)
-                                        },
                                         onUpdateServerUrl = { viewModel.updateRawJsonUrl(it) }
                                     )
                                 }
@@ -322,7 +332,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Modal Dialogs
+                // Modal Dialogs (All with Glassmorphism styling and 26dp rounded shapes)
                 if (uiState.isDeviceDetailOpen) {
                     DeviceSpecsDialog(
                         deviceInfo = deviceInfo,
@@ -332,24 +342,17 @@ class MainActivity : ComponentActivity() {
 
                 if (uiState.isHistoryOpen) {
                     UpdateHistoryDialog(
-                        history = updateHistory,
+                        historyItems = updateHistory,
                         onDismiss = { viewModel.setHistoryOpen(false) }
                     )
                 }
 
                 if (uiState.isLocalInstallOpen) {
                     LocalPackageInstallDialog(
+                        targetPath = OtaConstants.DEFAULT_TARGET_FILE_PATH,
                         onDismiss = { viewModel.setLocalInstallOpen(false) },
-                        onFlashLocalZip = { path ->
-                            viewModel.publishNewRelease(
-                                versionName = "PowerOS 2.2.0 (Local Sideload)",
-                                versionCode = 220,
-                                channel = "Local",
-                                type = "Full ROM Zip",
-                                sizeMb = 1880L,
-                                changelog = "• Sideloaded package from $path into Oppo A6X storage slot.\n• Verified checksum & signature.",
-                                isMandatory = false
-                            )
+                        onInstallLocalFile = {
+                            viewModel.showSnackbar("Local package queued at ${OtaConstants.DEFAULT_TARGET_FILE_PATH}")
                         }
                     )
                 }
@@ -357,59 +360,57 @@ class MainActivity : ComponentActivity() {
                 if (uiState.showRecoveryInstallDialog) {
                     RecoveryInstallDialog(
                         release = uiState.activeReleaseForInstall ?: latestRelease,
-                        progress = downloadProgress,
                         onConfirmInstall = { viewModel.executeSystemUpdate() },
-                        onReset = { viewModel.resetUpdateState() },
                         onDismiss = { viewModel.closeInstallDialog() }
-                    )
-                }
-
-                if (uiState.isCreateReleaseOpen) {
-                    CreateReleaseDialog(
-                        onDismiss = { viewModel.setCreateReleaseOpen(false) },
-                        onPublish = { name, code, ch, type, mb, changelog, isMandatory ->
-                            viewModel.publishNewRelease(name, code, ch, type, mb, changelog, isMandatory)
-                        }
                     )
                 }
 
                 if (uiState.isServerApiInspectorOpen) {
                     ServerApiInspectorDialog(
-                        serverUrl = serverUrl,
-                        releases = allReleases,
-                        onDismiss = { viewModel.setServerApiInspectorOpen(false) }
+                        rawUrl = serverUrl,
+                        onDismiss = { viewModel.setServerApiInspectorOpen(false) },
+                        onSaveUrl = { newUrl -> viewModel.updateRawJsonUrl(newUrl) }
                     )
                 }
 
                 if (showAboutDialog) {
                     AlertDialog(
                         onDismissRequest = { showAboutDialog = false },
-                        containerColor = Color.White,
-                        shape = RoundedCornerShape(20.dp),
+                        containerColor = NaturalLightCardBackground,
+                        shape = RoundedCornerShape(26.dp),
                         title = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(12.dp))
                                         .background(GlassPrimary.copy(alpha = 0.12f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = null, tint = GlassPrimary, modifier = Modifier.size(20.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.PowerSettingsNew,
+                                        contentDescription = null,
+                                        tint = GlassPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text("About Power OS", color = NaturalLightTextPrimary, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "About Power OS",
+                                    color = NaturalLightTextPrimary,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                )
                             }
                         },
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
-                                    text = "Power OS OTA Updater (Oppo A6X)",
+                                    text = "Power OS System Updater for Oppo A6X",
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                     color = NaturalLightTextPrimary
                                 )
                                 Text(
-                                    text = "Live parameters configured:\n• Raw JSON: ${OtaConstants.DEFAULT_RAW_JSON_URL}\n• Target Directory: ${OtaConstants.DEFAULT_TARGET_FILE_PATH}\n• Device Model: ${OtaConstants.DEVICE_MODEL_NAME}\n\nFeatures 1-click update checks, real streaming download to /sdcard/Download/OTA/rom.zip, SHA-256 integrity verification, and Oppo A6X recovery flashing.",
+                                    text = "• Online Manifest: ${OtaConstants.DEFAULT_RAW_JSON_URL}\n• Target File: ${OtaConstants.DEFAULT_TARGET_FILE_PATH}\n• Device Model: ${OtaConstants.DEVICE_MODEL_NAME}\n\nFeatures live GitHub sync, real HTTP streaming ROM downloads directly to /sdcard/Download/OTA/rom.zip, SHA-256 verification, and Oppo recovery flashing.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = NaturalLightTextSecondary
                                 )
@@ -418,8 +419,8 @@ class MainActivity : ComponentActivity() {
                         confirmButton = {
                             Button(
                                 onClick = { showAboutDialog = false },
-                                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
-                                shape = RoundedCornerShape(12.dp)
+                                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary),
+                                shape = RoundedCornerShape(24.dp)
                             ) {
                                 Text("OK", fontWeight = FontWeight.Bold)
                             }
@@ -430,4 +431,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-

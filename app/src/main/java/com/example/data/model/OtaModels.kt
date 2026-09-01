@@ -7,16 +7,20 @@ import androidx.room.PrimaryKey
  * Constants defining the live GitHub OTA repository and target device parameters.
  */
 object OtaConstants {
-    const val DEFAULT_RAW_JSON_URL = "https://raw.githubusercontent.com/aara3936/Oppo-A6X-OTA/main/updater.json"
+    const val DEFAULT_RAW_JSON_URL = "https://raw.githubusercontent.com/aara3936/Oppo-A6X-OTA/main/metadata.json"
+    const val DEFAULT_FALLBACK_JSON_URL = "https://raw.githubusercontent.com/aara3936/Oppo-A6X-OTA/main/updater.json"
     const val DEFAULT_TARGET_FILE_PATH = "/sdcard/Download/OTA/rom.zip"
     const val DEFAULT_TARGET_DIRECTORY = "/sdcard/Download/OTA"
     const val DEFAULT_TARGET_FILENAME = "rom.zip"
     const val DEVICE_MODEL_NAME = "Oppo A6X"
     const val DEVICE_CODENAME = "oppo_a6x"
+    const val CURRENT_BASE_VERSION_NAME = "Power OS v3.0.0"
+    const val CURRENT_BASE_VERSION_CODE = 3000
+    const val CURRENT_BUILD_TAG = "POS-3.0.0-STABLE-OppoA6X"
 }
 
 /**
- * Represents an OTA Software Update package released for Oppo A6X.
+ * Represents an OTA Software Update package fetched from the GitHub repository for Oppo A6X.
  */
 @Entity(tableName = "ota_releases")
 data class OtaRelease(
@@ -26,42 +30,42 @@ data class OtaRelease(
     val deviceCodename: String = OtaConstants.DEVICE_CODENAME,
     val versionName: String,
     val versionCode: Int,
-    val buildNumber: String,
-    val releaseChannel: String = "Stable", // Stable, Beta, Developer Preview
-    val releaseType: String = "Full OTA", // Full OTA, Incremental Patch
-    val packageSizeBytes: Long = 1887436800L, // ~1.75 GB
-    val downloadUrl: String = "https://github.com/aara3936/Oppo-A6X-OTA/releases/download/v2.1.0/rom.zip",
-    val checksumSha256: String = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    val androidVersion: String = "Android 15 (VanillaIceCream)",
-    val securityPatch: String = "2026-08-05",
-    val changelog: String,
+    val buildNumber: String = "",
+    val releaseChannel: String = "Official",
+    val releaseType: String = "Full OTA Package",
+    val packageSizeBytes: Long = 0L,
+    val downloadUrl: String,
+    val checksumSha256: String = "",
+    val androidVersion: String = "Android 15",
+    val securityPatch: String = "",
+    val changelog: String = "",
     val releaseDate: Long = System.currentTimeMillis(),
     val isMandatory: Boolean = false,
-    val minRequiredVersion: Int = 100,
-    val status: String = "PUBLISHED", // PUBLISHED, STAGED, PAUSED, DEPRECATED
+    val minRequiredVersion: Int = 0,
+    val status: String = "PUBLISHED",
     val rolloutPercentage: Int = 100,
     val sourceUrl: String = OtaConstants.DEFAULT_RAW_JSON_URL,
     val targetLocalPath: String = OtaConstants.DEFAULT_TARGET_FILE_PATH
 )
 
 /**
- * System hardware and firmware state for the target device (Oppo A6X).
+ * Real device state representation for Oppo A6X.
  */
 data class SystemDeviceInfo(
     val deviceName: String = OtaConstants.DEVICE_MODEL_NAME,
     val deviceCodename: String = OtaConstants.DEVICE_CODENAME,
-    val currentOsVersion: String = "PowerOS 1.2.0 (Oppo A6X)",
-    val currentVersionCode: Int = 120,
-    val currentBuildNumber: String = "POS-1.2.0-STABLE-20260515-OppoA6X",
-    val androidVersion: String = "Android 15 (VanillaIceCream)",
-    val securityPatch: String = "2026-05-01",
-    val kernelVersion: String = "5.15.118-PowerOS-OppoA6X-v1.2",
-    val batteryLevel: Int = 88,
+    val currentOsVersion: String = OtaConstants.CURRENT_BASE_VERSION_NAME,
+    val currentVersionCode: Int = OtaConstants.CURRENT_BASE_VERSION_CODE,
+    val currentBuildNumber: String = OtaConstants.CURRENT_BUILD_TAG,
+    val androidVersion: String = "Android 15",
+    val securityPatch: String = "August 2026",
+    val kernelVersion: String = "5.15.148-PowerOS-OppoA6X",
+    val batteryLevel: Int = 92,
     val isCharging: Boolean = true,
-    val storageFreeGb: Float = 54.2f,
+    val storageFreeGb: Float = 62.4f,
     val storageTotalGb: Float = 128.0f,
-    val networkType: String = "Wi-Fi 6 (5 GHz)",
-    val cpuArch: String = "MediaTek Dimensity / ARM64-v8a (Octa-Core 2.4 GHz)",
+    val networkType: String = "Wi-Fi Connected",
+    val cpuArch: String = "MediaTek Dimensity / ARM64",
     val rawJsonSource: String = OtaConstants.DEFAULT_RAW_JSON_URL,
     val targetSavePath: String = OtaConstants.DEFAULT_TARGET_FILE_PATH
 )
@@ -96,7 +100,7 @@ data class DownloadProgress(
 )
 
 /**
- * History of installed system updates on the Oppo A6X device.
+ * History of installed system updates on the device.
  */
 @Entity(tableName = "update_history")
 data class UpdateHistoryItem(

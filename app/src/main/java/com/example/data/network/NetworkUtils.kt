@@ -160,23 +160,27 @@ object NetworkUtils {
         return try {
             val versionName = when {
                 obj.has("version_name") -> obj.optString("version_name")
-                obj.has("version") -> "PowerOS " + obj.optString("version") + " (Oppo A6X)"
+                obj.has("version") -> {
+                    val rawVer = obj.optString("version")
+                    if (rawVer.startsWith("Power", ignoreCase = true)) rawVer else "Power OS v$rawVer"
+                }
                 obj.has("name") -> obj.optString("name")
-                else -> "PowerOS 2.1.0 (Oppo A6X)"
+                else -> "Power OS System Update"
             }
 
             val versionCode = when {
-                obj.has("version_code") -> obj.optInt("version_code", 210)
+                obj.has("versionCode") -> obj.optInt("versionCode")
+                obj.has("version_code") -> obj.optInt("version_code")
                 obj.has("version") -> {
-                    val ver = obj.optString("version").replace(".", "").filter { it.isDigit() }
-                    ver.toIntOrNull() ?: 210
+                    val digits = obj.optString("version").replace(".", "").filter { it.isDigit() }
+                    digits.toIntOrNull() ?: 1000
                 }
-                else -> 210
+                else -> 1000
             }
 
             val buildNumber = obj.optString(
                 "build_number",
-                obj.optString("build", "POS-$versionCode-STABLE-20260831-OppoA6X")
+                obj.optString("build", "POS-$versionCode-STABLE-OppoA6X")
             )
 
             val deviceModel = obj.optString(
@@ -186,42 +190,49 @@ object NetworkUtils {
 
             val releaseChannel = obj.optString(
                 "release_channel",
-                obj.optString("channel", if (obj.optString("romtype") == "beta") "Beta" else "Stable")
+                obj.optString("channel", if (obj.optString("romtype") == "beta") "Beta" else "Official")
             )
 
-            val releaseType = obj.optString("release_type", obj.optString("type", "Full OTA"))
+            val releaseType = obj.optString("release_type", obj.optString("type", "Full OTA Package"))
 
             val packageSizeBytes = when {
                 obj.has("package_size_bytes") -> obj.optLong("package_size_bytes")
                 obj.has("size") -> obj.optLong("size")
                 obj.has("filesize") -> obj.optLong("filesize")
-                else -> 1887436800L
+                obj.has("packageSize") -> obj.optLong("packageSize")
+                else -> 0L
             }
 
             val downloadUrl = when {
+                obj.has("zipUrl") -> obj.optString("zipUrl")
                 obj.has("download_url") -> obj.optString("download_url")
                 obj.has("url") -> obj.optString("url")
-                else -> "https://github.com/aara3936/Oppo-A6X-OTA/releases/download/v2.1.0/rom.zip"
+                obj.has("downloadUrl") -> obj.optString("downloadUrl")
+                else -> ""
+            }
+
+            if (downloadUrl.isBlank()) {
+                return null
             }
 
             val checksumSha256 = when {
                 obj.has("checksum_sha256") -> obj.optString("checksum_sha256")
                 obj.has("sha256") -> obj.optString("sha256")
                 obj.has("checksum") -> obj.optString("checksum")
-                obj.has("id") -> obj.optString("id")
-                else -> "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                obj.has("md5") -> obj.optString("md5")
+                else -> ""
             }
 
             val changelog = when {
                 obj.has("changelog") -> obj.optString("changelog")
                 obj.has("notes") -> obj.optString("notes")
                 obj.has("description") -> obj.optString("description")
-                else -> "• Official Power OS build for Oppo A6X\n• Enhanced battery optimization & kernel tuning\n• Android 15 August 2026 security patch"
+                else -> "System update for Oppo A6X with performance and stability improvements."
             }
 
-            val securityPatch = obj.optString("security_patch", "2026-08-05")
+            val securityPatch = obj.optString("security_patch", obj.optString("securityPatch", "2026-08-05"))
             val releaseDate = obj.optLong("datetime", obj.optLong("release_date", System.currentTimeMillis()))
-            val id = obj.optString("id", "oppo_a6x_${versionCode}_${UUID.randomUUID().toString().take(6)}")
+            val id = obj.optString("id", "oppoa6x_v${versionCode}")
 
             OtaRelease(
                 id = id,
@@ -230,17 +241,17 @@ object NetworkUtils {
                 versionName = versionName,
                 versionCode = versionCode,
                 buildNumber = buildNumber,
-                releaseChannel = if (releaseChannel.contains("beta", ignoreCase = true)) "Beta" else "Stable",
+                releaseChannel = releaseChannel,
                 releaseType = releaseType,
                 packageSizeBytes = packageSizeBytes,
                 downloadUrl = downloadUrl,
                 checksumSha256 = checksumSha256,
-                androidVersion = "Android 15 (VanillaIceCream)",
+                androidVersion = "Android 15",
                 securityPatch = securityPatch,
                 changelog = changelog,
                 releaseDate = releaseDate,
-                isMandatory = obj.optBoolean("is_mandatory", false),
-                minRequiredVersion = obj.optInt("min_required_version", 100),
+                isMandatory = obj.optBoolean("is_mandatory", obj.optBoolean("isMandatory", false)),
+                minRequiredVersion = obj.optInt("min_required_version", 0),
                 status = "PUBLISHED",
                 rolloutPercentage = 100,
                 sourceUrl = sourceUrl,

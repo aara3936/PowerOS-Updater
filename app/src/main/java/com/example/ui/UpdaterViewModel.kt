@@ -27,7 +27,7 @@ enum class AppSubstance {
 
 data class UpdaterUiState(
     val selectedSubstance: AppSubstance = AppSubstance.CLIENT_UPDATER,
-    val selectedChannel: String = "Stable", // Stable, Beta, Developer Preview
+    val selectedChannel: String = "Official", // Official channel
     val isCheckingForUpdate: Boolean = false,
     val lastCheckTime: Long = System.currentTimeMillis(),
     val rawJsonUrl: String = OtaConstants.DEFAULT_RAW_JSON_URL,
@@ -35,10 +35,8 @@ data class UpdaterUiState(
     val isDeviceDetailOpen: Boolean = false,
     val isHistoryOpen: Boolean = false,
     val isLocalInstallOpen: Boolean = false,
-    val isCreateReleaseOpen: Boolean = false,
     val isServerApiInspectorOpen: Boolean = false,
     val showRecoveryInstallDialog: Boolean = false,
-    val installSuccessBanner: Boolean = false,
     val activeReleaseForInstall: OtaRelease? = null,
     val snackbarMessage: String? = null
 )
@@ -55,7 +53,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(UpdaterUiState())
     val uiState: StateFlow<UpdaterUiState> = _uiState.asStateFlow()
 
-    // Flow of latest release matching Oppo A6X and the selected channel
+    // Flow of latest release matching Oppo A6X
     val latestRelease: StateFlow<OtaRelease?> = _uiState
         .flatMapLatest { state ->
             repository.getLatestRelease(OtaConstants.DEVICE_MODEL_NAME, state.selectedChannel)
@@ -92,7 +90,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     fun checkForUpdates(silent: Boolean = false) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCheckingForUpdate = true)
-            if (!silent) delay(1000)
+            if (!silent) delay(900)
 
             val fetchResult = repository.fetchFromGitHubRaw(_uiState.value.rawJsonUrl)
             _uiState.value = _uiState.value.copy(
@@ -102,7 +100,12 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
 
             if (!silent) {
                 if (fetchResult.isSuccess) {
-                    showSnackbar("Synced with GitHub raw updater.json for Oppo A6X")
+                    val count = fetchResult.getOrNull()?.size ?: 0
+                    if (count > 0) {
+                        showSnackbar("Synced with GitHub raw manifest for Oppo A6X ($count release found)")
+                    } else {
+                        showSnackbar("Synced with GitHub raw manifest: No new releases")
+                    }
                 } else {
                     showSnackbar("Checked GitHub (${fetchResult.exceptionOrNull()?.message ?: "Using local database"})")
                 }
@@ -163,44 +166,10 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
-    // OTA Server Substance Actions
-    fun publishNewRelease(
-        versionName: String,
-        versionCode: Int,
-        channel: String,
-        type: String,
-        sizeMb: Long,
-        changelog: String,
-        isMandatory: Boolean
-    ) {
-        viewModelScope.launch {
-            val newRelease = repository.createSampleRelease(
-                versionName = versionName,
-                versionCode = versionCode,
-                channel = channel,
-                type = type,
-                sizeMb = sizeMb,
-                changelog = changelog,
-                isMandatory = isMandatory
-            )
-            repository.publishRelease(newRelease)
-            showSnackbar("Published ${newRelease.versionName} for Oppo A6X successfully!")
-            _uiState.value = _uiState.value.copy(isCreateReleaseOpen = false)
-        }
-    }
-
     fun deleteRelease(releaseId: String) {
         viewModelScope.launch {
             repository.deleteRelease(releaseId)
-            showSnackbar("Release removed from Oppo A6X OTA repository.")
-        }
-    }
-
-    fun toggleReleaseStatus(release: OtaRelease) {
-        viewModelScope.launch {
-            val newStatus = if (release.status == "PUBLISHED") "PAUSED" else "PUBLISHED"
-            repository.updateRelease(release.copy(status = newStatus))
-            showSnackbar("Release status changed to $newStatus")
+            showSnackbar("Release removed from local repository.")
         }
     }
 
@@ -215,10 +184,6 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
 
     fun setLocalInstallOpen(open: Boolean) {
         _uiState.value = _uiState.value.copy(isLocalInstallOpen = open)
-    }
-
-    fun setCreateReleaseOpen(open: Boolean) {
-        _uiState.value = _uiState.value.copy(isCreateReleaseOpen = open)
     }
 
     fun setServerApiInspectorOpen(open: Boolean) {

@@ -22,8 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,6 +48,7 @@ import java.util.Locale
 
 object Formatters {
     fun formatBytes(bytes: Long): String {
+        if (bytes <= 0) return "0 MB"
         val gb = bytes.toDouble() / (1024 * 1024 * 1024)
         if (gb >= 1.0) {
             return String.format(Locale.US, "%.2f GB", gb)
@@ -63,6 +62,7 @@ object Formatters {
     }
 
     fun formatSpeed(bytesPerSec: Long): String {
+        if (bytesPerSec <= 0) return "0.0 MB/s"
         val mbps = (bytesPerSec.toDouble() / (1024 * 1024))
         return String.format(Locale.US, "%.1f MB/s", mbps)
     }
@@ -75,6 +75,7 @@ object Formatters {
     }
 
     fun formatDate(timestamp: Long): String {
+        if (timestamp <= 0) return "Never"
         val sdf = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
         return sdf.format(Date(timestamp))
     }
@@ -104,7 +105,7 @@ fun PulsingStatusDot(
             modifier = Modifier
                 .size(10.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = alpha * 0.35f))
+                .background(color.copy(alpha = alpha * 0.4f))
         )
         Box(
             modifier = Modifier
@@ -124,10 +125,10 @@ fun StatusBadge(
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(color.copy(alpha = 0.12f))
-            .border(1.dp, color.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .border(1.dp, color.copy(alpha = 0.30f), RoundedCornerShape(24.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isPulsing) {
@@ -137,8 +138,8 @@ fun StatusBadge(
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.4.sp
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
             ),
             color = color
         )
@@ -147,33 +148,34 @@ fun StatusBadge(
 
 /**
  * Liquid Glassmorphic Card Container.
- * Features frosted translucent white layers, ambient elevation shadow, and fine 1px light border.
+ * Features true frosted glass visuals: 26dp rounded corners, semi-transparent white fills,
+ * subtle atmospheric ambient shadows, and 1px delicate light border strokes.
  */
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(22.dp),
+    shape: Shape = RoundedCornerShape(26.dp),
     accentGradient: Brush? = null,
     borderStroke: BorderStroke? = BorderStroke(
         1.dp,
         Brush.verticalGradient(
             listOf(
-                Color.White.copy(alpha = 0.95f),
-                Color.White.copy(alpha = 0.50f),
-                Color(0x1F64748B)
+                Color.White.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.45f),
+                Color(0x2664748B)
             )
         )
     ),
-    contentPadding: Dp = 18.dp,
+    contentPadding: Dp = 20.dp,
     content: @Composable BoxScope.() -> Unit
 ) {
     Surface(
         modifier = modifier
             .shadow(
-                elevation = 6.dp,
+                elevation = 8.dp,
                 shape = shape,
-                ambientColor = Color(0x1A0F172A),
-                spotColor = Color(0x150284C7)
+                ambientColor = Color(0x140F172A),
+                spotColor = Color(0x1A0284C7)
             ),
         shape = shape,
         color = Color.Transparent,
@@ -184,9 +186,9 @@ fun LiquidGlassCard(
                 .background(
                     accentGradient ?: Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.88f),
-                            Color.White.copy(alpha = 0.72f),
-                            Color(0xF5F8FAFC)
+                            Color.White.copy(alpha = 0.78f),
+                            Color.White.copy(alpha = 0.62f),
+                            Color(0xEEF8FAFC)
                         )
                     )
                 )
@@ -198,24 +200,7 @@ fun LiquidGlassCard(
 }
 
 /**
- * Legacy wrapper forwarding to LiquidGlassCard for backward compatibility.
- */
-@Composable
-fun GradientGlowCard(
-    modifier: Modifier = Modifier,
-    borderColor: Color = GlassPrimary.copy(alpha = 0.3f),
-    content: @Composable () -> Unit
-) {
-    LiquidGlassCard(
-        modifier = modifier,
-        borderStroke = BorderStroke(1.dp, borderColor)
-    ) {
-        content()
-    }
-}
-
-/**
- * Translucent frosted interactive chip/pill.
+ * Translucent frosted interactive chip/pill with 24dp rounded corners.
  */
 @Composable
 fun GlassChip(
@@ -235,26 +220,25 @@ fun GlassChip(
     } else {
         Brush.verticalGradient(
             listOf(
-                Color.White.copy(alpha = 0.9f),
-                Color.White.copy(alpha = 0.6f)
+                Color.White.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.55f)
             )
         )
     }
 
     val textColor = if (isSelected) Color.White else NaturalLightTextPrimary
-    val borderColor = if (isSelected) activeColor.copy(alpha = 0.6f) else Color(0x33CBD5E1)
+    val borderColor = if (isSelected) activeColor.copy(alpha = 0.6f) else Color(0x40CBD5E1)
 
     Box(
         modifier = modifier
             .shadow(
                 elevation = if (isSelected) 4.dp else 1.dp,
-                shape = RoundedCornerShape(12.dp),
-                ambientColor = Color(0x10000000),
-                spotColor = if (isSelected) activeColor.copy(alpha = 0.3f) else Color.Transparent
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = Color(0x10000000)
             )
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(backgroundBrush)
-            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(24.dp))
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
@@ -269,3 +253,50 @@ fun GlassChip(
     }
 }
 
+/**
+ * Frosted Glass Action Button with 26dp rounded corners.
+ */
+@Composable
+fun GlassButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    color: Color = GlassPrimary,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    enabled: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(26.dp),
+                spotColor = color.copy(alpha = 0.4f)
+            ),
+        shape = RoundedCornerShape(26.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = color,
+            contentColor = Color.White,
+            disabledContainerColor = Color(0xFFCBD5E1),
+            disabledContentColor = Color(0xFF64748B)
+        ),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (leadingIcon != null) {
+                leadingIcon()
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.4.sp
+                )
+            )
+        }
+    }
+}
