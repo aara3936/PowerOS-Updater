@@ -20,22 +20,13 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-enum class AppSubstance {
-    CLIENT_UPDATER, // Power OS System Updater for Oppo A6X
-    OTA_SERVER      // GitHub OTA Release Portal for Oppo A6X
-}
-
 data class UpdaterUiState(
-    val selectedSubstance: AppSubstance = AppSubstance.CLIENT_UPDATER,
-    val selectedChannel: String = "Official", // Official channel
+    val selectedChannel: String = "Stable", // Stable, Early Access, Closed Beta
     val isCheckingForUpdate: Boolean = false,
     val lastCheckTime: Long = System.currentTimeMillis(),
-    val rawJsonUrl: String = OtaConstants.DEFAULT_RAW_JSON_URL,
-    val targetRomPath: String = OtaConstants.DEFAULT_TARGET_FILE_PATH,
     val isDeviceDetailOpen: Boolean = false,
     val isHistoryOpen: Boolean = false,
     val isLocalInstallOpen: Boolean = false,
-    val isServerApiInspectorOpen: Boolean = false,
     val showRecoveryInstallDialog: Boolean = false,
     val activeReleaseForInstall: OtaRelease? = null,
     val snackbarMessage: String? = null
@@ -48,21 +39,16 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
 
     val deviceInfo: StateFlow<SystemDeviceInfo> = repository.deviceInfo
     val downloadProgress: StateFlow<DownloadProgress> = repository.downloadProgress
-    val serverUrl: StateFlow<String> = repository.serverUrl
 
     private val _uiState = MutableStateFlow(UpdaterUiState())
     val uiState: StateFlow<UpdaterUiState> = _uiState.asStateFlow()
 
-    // Flow of latest release matching Oppo A6X
+    // Flow of latest release matching Oppo A6X and active selected channel
     val latestRelease: StateFlow<OtaRelease?> = _uiState
         .flatMapLatest { state ->
             repository.getLatestRelease(OtaConstants.DEVICE_MODEL_NAME, state.selectedChannel)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-    // All releases for Oppo A6X
-    val allReleases: StateFlow<List<OtaRelease>> = repository.getReleasesForDevice(OtaConstants.DEVICE_MODEL_NAME)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Update history
     val updateHistory: StateFlow<List<UpdateHistoryItem>> = repository.getUpdateHistory()
@@ -78,10 +64,6 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         checkForUpdates(silent = true)
     }
 
-    fun selectSubstance(substance: AppSubstance) {
-        _uiState.value = _uiState.value.copy(selectedSubstance = substance)
-    }
-
     fun selectChannel(channel: String) {
         _uiState.value = _uiState.value.copy(selectedChannel = channel)
         checkForUpdates(silent = false)
@@ -90,9 +72,9 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     fun checkForUpdates(silent: Boolean = false) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCheckingForUpdate = true)
-            if (!silent) delay(900)
+            if (!silent) delay(800)
 
-            val fetchResult = repository.fetchFromGitHubRaw(_uiState.value.rawJsonUrl)
+            val fetchResult = repository.fetchFromGitHubRaw(OtaConstants.DEFAULT_RAW_JSON_URL)
             _uiState.value = _uiState.value.copy(
                 isCheckingForUpdate = false,
                 lastCheckTime = System.currentTimeMillis()
@@ -102,22 +84,14 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
                 if (fetchResult.isSuccess) {
                     val count = fetchResult.getOrNull()?.size ?: 0
                     if (count > 0) {
-                        showSnackbar("Synced with GitHub raw manifest for Oppo A6X ($count release found)")
+                        showSnackbar("Synced with GitHub raw manifest ($count release found)")
                     } else {
-                        showSnackbar("Synced with GitHub raw manifest: No new releases")
+                        showSnackbar("Your Power OS is up to date")
                     }
                 } else {
-                    showSnackbar("Checked GitHub (${fetchResult.exceptionOrNull()?.message ?: "Using local database"})")
+                    showSnackbar("Checked online server (${fetchResult.exceptionOrNull()?.message ?: "Up to date"})")
                 }
             }
-        }
-    }
-
-    fun updateRawJsonUrl(newUrl: String) {
-        if (newUrl.isNotBlank()) {
-            _uiState.value = _uiState.value.copy(rawJsonUrl = newUrl.trim())
-            repository.setServerUrl(newUrl.trim())
-            checkForUpdates(silent = false)
         }
     }
 
@@ -166,13 +140,6 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
-    fun deleteRelease(releaseId: String) {
-        viewModelScope.launch {
-            repository.deleteRelease(releaseId)
-            showSnackbar("Release removed from local repository.")
-        }
-    }
-
     // Dialog toggles
     fun setDeviceDetailOpen(open: Boolean) {
         _uiState.value = _uiState.value.copy(isDeviceDetailOpen = open)
@@ -186,10 +153,6 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         _uiState.value = _uiState.value.copy(isLocalInstallOpen = open)
     }
 
-    fun setServerApiInspectorOpen(open: Boolean) {
-        _uiState.value = _uiState.value.copy(isServerApiInspectorOpen = open)
-    }
-
     fun showSnackbar(message: String) {
         _uiState.value = _uiState.value.copy(snackbarMessage = message)
     }
@@ -198,8 +161,3 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         _uiState.value = _uiState.value.copy(snackbarMessage = null)
     }
 }
-
-/**
- * Typealias for OtaViewModel to maintain backward compatibility.
- */
-typealias OtaViewModel = UpdaterViewModel

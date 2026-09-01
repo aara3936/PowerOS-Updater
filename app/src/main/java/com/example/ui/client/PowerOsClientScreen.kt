@@ -7,9 +7,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,7 +39,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Wifi
@@ -50,7 +46,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -76,6 +71,7 @@ import com.example.data.model.OtaRelease
 import com.example.data.model.SystemDeviceInfo
 import com.example.ui.components.Formatters
 import com.example.ui.components.GlassButton
+import com.example.ui.components.GlassChannelSegmentedBar
 import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.StatusBadge
 import com.example.ui.theme.GlassAmber
@@ -86,6 +82,8 @@ import com.example.ui.theme.GlassSecondary
 import com.example.ui.theme.NaturalLightTextMuted
 import com.example.ui.theme.NaturalLightTextPrimary
 import com.example.ui.theme.NaturalLightTextSecondary
+
+val AVAILABLE_CHANNELS = listOf("Stable", "Early Access", "Closed Beta")
 
 @Composable
 fun PowerOsClientScreen(
@@ -106,7 +104,6 @@ fun PowerOsClientScreen(
     onOpenDeviceSpecs: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenLocalInstall: () -> Unit,
-    onOpenSettings: () -> Unit,
     onResetUpdateState: () -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -118,7 +115,15 @@ fun PowerOsClientScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Device Profile Glass Card (Oppo A6X & Hardware State)
+        // 1. 3-Channel Release Selector Bar [ Stable ] | [ Early Access ] | [ Closed Beta ]
+        GlassChannelSegmentedBar(
+            channels = AVAILABLE_CHANNELS,
+            selectedChannel = selectedChannel,
+            onSelectChannel = onSelectChannel,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // 2. Device Profile Glass Card (Oppo A6X System Status)
         LiquidGlassCard(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -169,8 +174,12 @@ fun PowerOsClientScreen(
                         }
                     }
 
-                    if (isNewUpdateAvailable) {
-                        StatusBadge(text = "UPDATE READY", color = GlassPrimary, isPulsing = true)
+                    if (isNewUpdateAvailable && latestRelease != null) {
+                        StatusBadge(
+                            text = "${selectedChannel.uppercase()} UPDATE",
+                            color = if (selectedChannel == "Closed Beta") Color(0xFFE11D48) else GlassPrimary,
+                            isPulsing = true
+                        )
                     } else {
                         StatusBadge(text = "UP TO DATE", color = GlassEmerald, isPulsing = false)
                     }
@@ -196,49 +205,13 @@ fun PowerOsClientScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Target Storage Directory Info
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.70f))
-                        .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Folder,
-                        contentDescription = null,
-                        tint = GlassSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Download Target:",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = NaturalLightTextMuted
-                        )
-                        Text(
-                            text = OtaConstants.DEFAULT_TARGET_FILE_PATH,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = GlassPrimary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
                 // Hardware Summary Pill
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(18.dp))
                         .background(Color.White.copy(alpha = 0.65f))
-                        .border(1.dp, Color(0x26CBD5E1), RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0x26CBD5E1), RoundedCornerShape(18.dp))
                         .padding(vertical = 10.dp, horizontal = 12.dp),
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
@@ -291,7 +264,7 @@ fun PowerOsClientScreen(
             }
         }
 
-        // 2. Main Live OTA State Glass Card
+        // 3. Active Update Card or Up-To-Date Shield
         if (isChecking) {
             // Checking State Animation
             LiquidGlassCard(
@@ -340,14 +313,14 @@ fun PowerOsClientScreen(
                         color = NaturalLightTextPrimary
                     )
                     Text(
-                        text = "Querying live GitHub metadata.json...",
+                        text = "Querying live $selectedChannel manifest for Oppo A6X...",
                         style = MaterialTheme.typography.bodySmall,
                         color = NaturalLightTextSecondary
                     )
                 }
             }
         } else if (latestRelease != null && isNewUpdateAvailable) {
-            // Update Available State
+            // Real Update Available for Selected Channel
             LiquidGlassCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -380,14 +353,18 @@ fun PowerOsClientScreen(
                                     color = NaturalLightTextPrimary
                                 )
                                 Text(
-                                    text = latestRelease.releaseType,
+                                    text = "${latestRelease.releaseChannel} · ${latestRelease.releaseType}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = GlassPrimary
                                 )
                             }
                         }
 
-                        StatusBadge(text = "NEW", color = GlassPrimary, isPulsing = true)
+                        StatusBadge(
+                            text = "NEW",
+                            color = if (selectedChannel == "Closed Beta") Color(0xFFE11D48) else GlassPrimary,
+                            isPulsing = true
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -411,12 +388,17 @@ fun PowerOsClientScreen(
                             color = GlassSecondary
                         )
                     }
+                    Text(
+                        text = "Release Date: ${Formatters.formatDate(latestRelease.releaseDate)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NaturalLightTextMuted
+                    )
 
                     Spacer(modifier = Modifier.height(14.dp))
 
                     // Changelog Glass Box
                     Text(
-                        text = "What's New:",
+                        text = "Changelog & Notes:",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = NaturalLightTextPrimary
                     )
@@ -424,9 +406,9 @@ fun PowerOsClientScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(Color.White.copy(alpha = 0.75f))
-                            .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(18.dp))
+                            .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(20.dp))
                             .padding(14.dp)
                     ) {
                         Text(
@@ -599,7 +581,7 @@ fun PowerOsClientScreen(
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
                                 Text(
-                                    text = "Verifying package integrity...",
+                                    text = "Verifying package SHA-256 integrity...",
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                     color = NaturalLightTextPrimary
                                 )
@@ -694,13 +676,13 @@ fun PowerOsClientScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 20.dp),
+                        .padding(vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(68.dp)
                             .clip(CircleShape)
                             .background(GlassEmerald.copy(alpha = 0.15f))
                             .border(1.dp, GlassEmerald.copy(alpha = 0.35f), CircleShape),
@@ -710,19 +692,20 @@ fun PowerOsClientScreen(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
                             tint = GlassEmerald,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(34.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Your System is Up to Date",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        text = "Your Power OS is up to date",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = NaturalLightTextPrimary
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${deviceInfo.deviceName} is running the latest Power OS build.",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "${deviceInfo.deviceName} is running the latest $selectedChannel build.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = NaturalLightTextSecondary
                     )
                     Text(
@@ -731,7 +714,7 @@ fun PowerOsClientScreen(
                         color = NaturalLightTextMuted
                     )
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     GlassButton(
                         text = "Check for Updates",
@@ -749,9 +732,9 @@ fun PowerOsClientScreen(
             }
         }
 
-        // 3. Quick Action Glass Tiles (Diagnostics, History, Endpoint Settings, Sideload)
+        // 4. System Quick Action Glass Tiles
         Text(
-            text = "System Tools & Actions",
+            text = "System Tools",
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
             color = NaturalLightTextPrimary
         )
@@ -779,30 +762,15 @@ fun PowerOsClientScreen(
                 onClick = onOpenHistory,
                 testTag = "action_history_tile"
             )
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
             ActionTile(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.Folder,
-                title = "Local Sideload",
-                subtitle = "Manual ROM Zip",
+                title = "Sideload",
+                subtitle = "Local ROM Zip",
                 color = GlassAmber,
                 onClick = onOpenLocalInstall,
                 testTag = "action_sideload_tile"
-            )
-
-            ActionTile(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Settings,
-                title = "OTA Endpoint",
-                subtitle = "GitHub Raw URL",
-                color = GlassEmerald,
-                onClick = onOpenSettings,
-                testTag = "action_settings_tile"
             )
         }
     }
@@ -821,15 +789,32 @@ private fun ActionTile(
     Box(
         modifier = modifier
             .shadow(
-                elevation = 4.dp,
+                elevation = 6.dp,
                 shape = RoundedCornerShape(24.dp),
-                ambientColor = Color(0x10000000)
+                ambientColor = Color(0x120F172A),
+                spotColor = Color(0x180284C7)
             )
             .clip(RoundedCornerShape(24.dp))
-            .background(Color.White.copy(alpha = 0.85f))
-            .border(1.dp, Color.White.copy(alpha = 0.95f), RoundedCornerShape(24.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.82f),
+                        Color.White.copy(alpha = 0.62f)
+                    )
+                )
+            )
+            .border(
+                1.dp,
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.90f),
+                        Color(0x33CBD5E1)
+                    )
+                ),
+                RoundedCornerShape(24.dp)
+            )
             .clickable { onClick() }
-            .padding(16.dp)
+            .padding(14.dp)
             .then(if (testTag.isNotBlank()) Modifier.testTag(testTag) else Modifier)
     ) {
         Column {

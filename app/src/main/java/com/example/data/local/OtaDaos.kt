@@ -12,11 +12,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface OtaReleaseDao {
-    @Query("SELECT * FROM ota_releases WHERE deviceModel = :device ORDER BY versionCode DESC")
-    fun getReleasesForDevice(device: String = "Cloud V1"): Flow<List<OtaRelease>>
+    @Query("SELECT * FROM ota_releases WHERE (deviceModel = :device OR deviceModel = 'Oppo A6X' OR deviceModel = '') ORDER BY versionCode DESC")
+    fun getReleasesForDevice(device: String = "Oppo A6X"): Flow<List<OtaRelease>>
 
-    @Query("SELECT * FROM ota_releases WHERE deviceModel = :device AND releaseChannel = :channel AND status != 'DEPRECATED' ORDER BY versionCode DESC LIMIT 1")
-    fun getLatestRelease(device: String = "Cloud V1", channel: String = "Stable"): Flow<OtaRelease?>
+    @Query("SELECT * FROM ota_releases WHERE (deviceModel = :device OR deviceModel = 'Oppo A6X' OR deviceModel = '') AND (releaseChannel = :channel OR (:channel = 'Stable' AND (releaseChannel = 'Official' OR releaseChannel = 'Stable' OR releaseChannel = 'stable' OR releaseChannel = 'official')) OR (:channel = 'Early Access' AND (releaseChannel = 'Early Access' OR releaseChannel = 'Beta' OR releaseChannel = 'beta' OR releaseChannel = 'early_access')) OR (:channel = 'Closed Beta' AND (releaseChannel = 'Closed Beta' OR releaseChannel = 'Alpha' OR releaseChannel = 'alpha' OR releaseChannel = 'nightly' OR releaseChannel = 'closed_beta'))) AND status != 'DEPRECATED' ORDER BY versionCode DESC LIMIT 1")
+    fun getLatestRelease(device: String = "Oppo A6X", channel: String = "Stable"): Flow<OtaRelease?>
 
     @Query("SELECT * FROM ota_releases WHERE id = :id LIMIT 1")
     suspend fun getReleaseById(id: String): OtaRelease?

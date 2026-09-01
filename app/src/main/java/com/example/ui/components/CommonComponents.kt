@@ -10,11 +10,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,6 +36,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -41,7 +44,9 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.GlassEmerald
 import com.example.ui.theme.GlassPrimary
 import com.example.ui.theme.GlassSecondary
+import com.example.ui.theme.NaturalLightTextMuted
 import com.example.ui.theme.NaturalLightTextPrimary
+import com.example.ui.theme.NaturalLightTextSecondary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -147,14 +152,13 @@ fun StatusBadge(
 }
 
 /**
- * Liquid Glassmorphic Card Container.
- * Features true frosted glass visuals: 26dp rounded corners, semi-transparent white fills,
- * subtle atmospheric ambient shadows, and 1px delicate light border strokes.
+ * True Frosted Liquid Glassmorphism Container with 28dp Global Rounded Styling.
+ * Uses translucent white fills, fine 1px light border stroke, and soft drop-shadow.
  */
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(26.dp),
+    shape: Shape = RoundedCornerShape(28.dp),
     accentGradient: Brush? = null,
     borderStroke: BorderStroke? = BorderStroke(
         1.dp,
@@ -162,7 +166,7 @@ fun LiquidGlassCard(
             listOf(
                 Color.White.copy(alpha = 0.85f),
                 Color.White.copy(alpha = 0.45f),
-                Color(0x2664748B)
+                Color(0x33CBD5E1)
             )
         )
     ),
@@ -172,10 +176,10 @@ fun LiquidGlassCard(
     Surface(
         modifier = modifier
             .shadow(
-                elevation = 8.dp,
+                elevation = 10.dp,
                 shape = shape,
-                ambientColor = Color(0x140F172A),
-                spotColor = Color(0x1A0284C7)
+                ambientColor = Color(0x1A0F172A),
+                spotColor = Color(0x1F0284C7)
             ),
         shape = shape,
         color = Color.Transparent,
@@ -187,8 +191,8 @@ fun LiquidGlassCard(
                     accentGradient ?: Brush.verticalGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0.78f),
-                            Color.White.copy(alpha = 0.62f),
-                            Color(0xEEF8FAFC)
+                            Color.White.copy(alpha = 0.60f),
+                            Color(0xE6F8FAFC)
                         )
                     )
                 )
@@ -200,61 +204,103 @@ fun LiquidGlassCard(
 }
 
 /**
- * Translucent frosted interactive chip/pill with 24dp rounded corners.
+ * 3-Channel Segmented Control with true Glassmorphism and 28dp rounded pill styling.
+ * Channels: [ Stable ] | [ Early Access ] | [ Closed Beta ]
  */
 @Composable
-fun GlassChip(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    activeColor: Color = GlassPrimary
+fun GlassChannelSegmentedBar(
+    channels: List<String>,
+    selectedChannel: String,
+    onSelectChannel: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val backgroundBrush = if (isSelected) {
-        Brush.horizontalGradient(
-            listOf(
-                activeColor,
-                activeColor.copy(alpha = 0.85f)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.85f),
-                Color.White.copy(alpha = 0.55f)
-            )
-        )
-    }
-
-    val textColor = if (isSelected) Color.White else NaturalLightTextPrimary
-    val borderColor = if (isSelected) activeColor.copy(alpha = 0.6f) else Color(0x40CBD5E1)
-
-    Box(
+    Row(
         modifier = modifier
+            .fillMaxWidth()
             .shadow(
-                elevation = if (isSelected) 4.dp else 1.dp,
-                shape = RoundedCornerShape(24.dp),
-                ambientColor = Color(0x10000000)
+                elevation = 6.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = Color(0x120F172A),
+                spotColor = Color(0x180284C7)
             )
-            .clip(RoundedCornerShape(24.dp))
-            .background(backgroundBrush)
-            .border(1.dp, borderColor, RoundedCornerShape(24.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
+            .clip(RoundedCornerShape(28.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.80f),
+                        Color.White.copy(alpha = 0.60f)
+                    )
+                )
+            )
+            .border(
+                1.dp,
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.90f),
+                        Color(0x33CBD5E1)
+                    )
+                ),
+                RoundedCornerShape(28.dp)
+            )
+            .padding(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-            ),
-            color = textColor
-        )
+        channels.forEach { channel ->
+            val isSelected = channel.equals(selectedChannel, ignoreCase = true)
+            val channelColor = when (channel) {
+                "Stable" -> GlassPrimary
+                "Early Access" -> GlassSecondary
+                "Closed Beta" -> Color(0xFFE11D48) // Rose Red
+                else -> GlassPrimary
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (isSelected) {
+                            Modifier.shadow(
+                                elevation = 4.dp,
+                                shape = RoundedCornerShape(24.dp),
+                                spotColor = channelColor.copy(alpha = 0.35f)
+                            )
+                        } else Modifier
+                    )
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        if (isSelected) {
+                            Brush.horizontalGradient(
+                                listOf(
+                                    channelColor,
+                                    channelColor.copy(alpha = 0.85f)
+                                )
+                            )
+                        } else {
+                            Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
+                        }
+                    )
+                    .clickable { onSelectChannel(channel) }
+                    .padding(vertical = 10.dp)
+                    .testTag("channel_tab_${channel.lowercase().replace(" ", "_")}"),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = channel,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                        letterSpacing = 0.2.sp
+                    ),
+                    color = if (isSelected) Color.White else NaturalLightTextSecondary,
+                    maxLines = 1
+                )
+            }
+        }
     }
 }
 
 /**
- * Frosted Glass Action Button with 26dp rounded corners.
+ * Frosted Glass Action Button with 28dp rounded corners.
  */
 @Composable
 fun GlassButton(
@@ -271,17 +317,17 @@ fun GlassButton(
         modifier = modifier
             .shadow(
                 elevation = 6.dp,
-                shape = RoundedCornerShape(26.dp),
-                spotColor = color.copy(alpha = 0.4f)
+                shape = RoundedCornerShape(28.dp),
+                spotColor = color.copy(alpha = 0.45f)
             ),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = color,
             contentColor = Color.White,
             disabledContainerColor = Color(0xFFCBD5E1),
             disabledContentColor = Color(0xFF64748B)
         ),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
