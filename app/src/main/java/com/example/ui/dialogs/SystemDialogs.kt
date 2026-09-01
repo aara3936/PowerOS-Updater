@@ -34,9 +34,8 @@ import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -68,15 +67,20 @@ import com.example.data.model.OtaRelease
 import com.example.data.model.SystemDeviceInfo
 import com.example.data.model.UpdateHistoryItem
 import com.example.ui.components.Formatters
+import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.StatusBadge
-import com.example.ui.theme.PowerAmber
-import com.example.ui.theme.PowerCyan
-import com.example.ui.theme.PowerEmerald
-import com.example.ui.theme.PowerIndigo
-import com.example.ui.theme.PowerRose
+import com.example.ui.theme.GlassAmber
+import com.example.ui.theme.GlassEmerald
+import com.example.ui.theme.GlassPrimary
+import com.example.ui.theme.GlassRose
+import com.example.ui.theme.GlassSecondary
+import com.example.ui.theme.NaturalLightCardBackground
+import com.example.ui.theme.NaturalLightTextMuted
+import com.example.ui.theme.NaturalLightTextPrimary
+import com.example.ui.theme.NaturalLightTextSecondary
 
 /**
- * Oppo A6X Hardware and System Diagnostics Dialog.
+ * Oppo A6X Hardware and System Diagnostics Dialog with Natural Light & Liquid Glass.
  */
 @Composable
 fun DeviceSpecsDialog(
@@ -85,13 +89,24 @@ fun DeviceSpecsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.Smartphone, contentDescription = null, tint = PowerCyan)
-                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(GlassPrimary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = Icons.Default.Smartphone, contentDescription = null, tint = GlassPrimary, modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Oppo A6X Specifications",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = NaturalLightTextPrimary
                 )
             }
         },
@@ -119,9 +134,10 @@ fun DeviceSpecsDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Close")
+                Text("Close", fontWeight = FontWeight.Bold)
             }
         }
     )
@@ -132,17 +148,18 @@ private fun SpecRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFFF1F5F9))
+            .border(1.dp, Color(0x22CBD5E1), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 7.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = NaturalLightTextMuted)
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface
+            color = NaturalLightTextPrimary
         )
     }
 }
@@ -163,21 +180,33 @@ fun RecoveryInstallDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isInstalling) onDismiss() },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (isFinished) Icons.Default.CheckCircle else Icons.Default.RestartAlt,
-                    contentDescription = null,
-                    tint = if (isFinished) PowerEmerald else PowerCyan
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(if (isFinished) GlassEmerald.copy(alpha = 0.15f) else GlassPrimary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isFinished) Icons.Default.CheckCircle else Icons.Default.RestartAlt,
+                        contentDescription = null,
+                        tint = if (isFinished) GlassEmerald else GlassPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = when {
                         isFinished -> "Update Installed"
                         isInstalling -> "Flashing Oppo A6X Recovery..."
                         else -> "Reboot & Apply Update"
                     },
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = NaturalLightTextPrimary
                 )
             }
         },
@@ -187,27 +216,28 @@ fun RecoveryInstallDialog(
                     Text(
                         text = "The update to ${release?.versionName ?: "Power OS"} has been successfully installed on your Oppo A6X device.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = NaturalLightTextPrimary
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(PowerEmerald.copy(alpha = 0.15f))
-                            .padding(10.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(GlassEmerald.copy(alpha = 0.12f))
+                            .border(1.dp, GlassEmerald.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
                     ) {
                         Text(
                             text = "System is rebooting into the updated OS slot...",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = PowerEmerald
+                            color = GlassEmerald
                         )
                     }
                 } else if (isInstalling) {
                     Text(
                         text = progress.currentStep,
-                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        color = PowerCyan
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold),
+                        color = GlassPrimary
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     LinearProgressIndicator(
@@ -216,30 +246,32 @@ fun RecoveryInstallDialog(
                             .fillMaxWidth()
                             .height(8.dp)
                             .clip(RoundedCornerShape(4.dp)),
-                        color = PowerCyan,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        color = GlassPrimary,
+                        trackColor = Color(0xFFE2E8F0)
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "${(progress.installProgress * 100).toInt()}% completed",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = NaturalLightTextSecondary
                     )
                 } else {
                     Text(
                         text = "Are you ready to install ${release?.versionName ?: "the update"} onto your Oppo A6X?",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = NaturalLightTextPrimary
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = "Source: /sdcard/Download/OTA/rom.zip",
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                        color = PowerCyan
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold),
+                        color = GlassPrimary
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "The device will reboot into dynamic fastbootd/recovery to flash the partitions.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = NaturalLightTextSecondary
                     )
                 }
             }
@@ -248,22 +280,24 @@ fun RecoveryInstallDialog(
             if (isFinished) {
                 Button(
                     onClick = onReset,
-                    colors = ButtonDefaults.buttonColors(containerColor = PowerEmerald, contentColor = Color.Black)
+                    colors = ButtonDefaults.buttonColors(containerColor = GlassEmerald, contentColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Done")
+                    Text("Done", fontWeight = FontWeight.Bold)
                 }
             } else if (!isInstalling) {
                 Button(
                     onClick = onConfirmInstall,
-                    colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black)
+                    colors = ButtonDefaults.buttonColors(containerColor = GlassEmerald, contentColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Reboot & Install")
+                    Text("Reboot & Install", fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
             if (!isInstalling && !isFinished) {
-                OutlinedButton(onClick = onDismiss) {
+                OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) {
                     Text("Cancel")
                 }
             }
@@ -283,13 +317,24 @@ fun LocalPackageInstallDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.FolderZip, contentDescription = null, tint = PowerIndigo)
-                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(GlassSecondary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = Icons.Default.FolderZip, contentDescription = null, tint = GlassSecondary, modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Local Package Sideload",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = NaturalLightTextPrimary
                 )
             }
         },
@@ -298,7 +343,7 @@ fun LocalPackageInstallDialog(
                 Text(
                     text = "Flash a pre-downloaded or customized Power OS ROM package from device storage directly onto Oppo A6X.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = NaturalLightTextSecondary
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
@@ -312,8 +357,8 @@ fun LocalPackageInstallDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Default target: /sdcard/Download/OTA/rom.zip",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PowerCyan
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = GlassPrimary
                 )
             }
         },
@@ -323,13 +368,14 @@ fun LocalPackageInstallDialog(
                     onFlashLocalZip(packagePath)
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = PowerIndigo, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Select & Flash")
+                Text("Select & Flash", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) {
                 Text("Cancel")
             }
         }
@@ -346,13 +392,24 @@ fun UpdateHistoryDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.History, contentDescription = null, tint = PowerEmerald)
-                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(GlassEmerald.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = Icons.Default.History, contentDescription = null, tint = GlassEmerald, modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Oppo A6X Update History",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = NaturalLightTextPrimary
                 )
             }
         },
@@ -361,7 +418,7 @@ fun UpdateHistoryDialog(
                 Text(
                     text = "No previous update records found for this Oppo A6X device.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = NaturalLightTextSecondary
                 )
             } else {
                 LazyColumn(
@@ -371,33 +428,37 @@ fun UpdateHistoryDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(history) { item ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(10.dp)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFF8FAFC))
+                                .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
+                            Column {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = item.versionName,
                                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = NaturalLightTextPrimary
                                     )
-                                    StatusBadge(text = item.releaseChannel, color = PowerCyan)
+                                    StatusBadge(text = item.releaseChannel, color = GlassPrimary)
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = "Installed: ${Formatters.formatDate(item.installedTimestamp)}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = NaturalLightTextSecondary
                                 )
                                 Text(
                                     text = "Build: ${item.buildNumber} · ${item.installType}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = NaturalLightTextMuted
                                 )
                             }
                         }
@@ -408,9 +469,10 @@ fun UpdateHistoryDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Close")
+                Text("Close", fontWeight = FontWeight.Bold)
             }
         }
     )
@@ -434,10 +496,13 @@ fun CreateReleaseDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Text(
                 text = "Publish OTA for Oppo A6X",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = NaturalLightTextPrimary
             )
         },
         text = {
@@ -507,9 +572,17 @@ fun CreateReleaseDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Checkbox(checked = isMandatory, onCheckedChange = { isMandatory = it })
+                    Checkbox(
+                        checked = isMandatory,
+                        onCheckedChange = { isMandatory = it },
+                        colors = CheckboxDefaults.colors(checkedColor = GlassPrimary)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Mark as Critical / Mandatory Update", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = "Mark as Critical / Mandatory Update",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NaturalLightTextPrimary
+                    )
                 }
             }
         },
@@ -520,13 +593,14 @@ fun CreateReleaseDialog(
                     val mb = sizeMbText.toLongOrNull() ?: 1850L
                     onPublish(versionName, code, channel, type, mb, changelog, isMandatory)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Publish to Repository")
+                Text("Publish to Repository", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) {
                 Text("Cancel")
             }
         }
@@ -580,6 +654,8 @@ fun ServerApiInspectorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -587,9 +663,21 @@ fun ServerApiInspectorDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Code, contentDescription = null, tint = PowerCyan)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "GitHub Raw API Inspector", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(GlassSecondary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.Code, contentDescription = null, tint = GlassSecondary, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "GitHub Raw API Inspector",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = NaturalLightTextPrimary
+                    )
                 }
                 IconButton(
                     onClick = {
@@ -597,7 +685,7 @@ fun ServerApiInspectorDialog(
                         clipboard.setPrimaryClip(ClipData.newPlainText("JSON", jsonOutput))
                     }
                 ) {
-                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy JSON", tint = PowerCyan)
+                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy JSON", tint = GlassSecondary)
                 }
             }
         },
@@ -605,18 +693,18 @@ fun ServerApiInspectorDialog(
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Live Endpoint: $serverUrl",
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                    color = PowerCyan
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold),
+                    color = GlassSecondary
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(280.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF070B11))
-                        .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(8.dp))
-                        .padding(10.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF8FAFC))
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                        .padding(12.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     Text(
@@ -624,9 +712,9 @@ fun ServerApiInspectorDialog(
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontFamily = FontFamily.Monospace,
                             fontSize = 11.sp,
-                            lineHeight = 15.sp
+                            lineHeight = 16.sp
                         ),
-                        color = Color(0xFF38BDF8)
+                        color = Color(0xFF0F172A)
                     )
                 }
             }
@@ -634,10 +722,12 @@ fun ServerApiInspectorDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Done")
+                Text("Done", fontWeight = FontWeight.Bold)
             }
         }
     )
 }
+

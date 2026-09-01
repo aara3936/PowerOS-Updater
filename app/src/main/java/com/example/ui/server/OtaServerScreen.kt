@@ -29,15 +29,11 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -63,13 +60,16 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.OtaConstants
 import com.example.data.model.OtaRelease
 import com.example.ui.components.Formatters
-import com.example.ui.components.GradientGlowCard
+import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.StatusBadge
-import com.example.ui.theme.PowerAmber
-import com.example.ui.theme.PowerCyan
-import com.example.ui.theme.PowerEmerald
-import com.example.ui.theme.PowerIndigo
-import com.example.ui.theme.PowerRose
+import com.example.ui.theme.GlassAmber
+import com.example.ui.theme.GlassEmerald
+import com.example.ui.theme.GlassPrimary
+import com.example.ui.theme.GlassRose
+import com.example.ui.theme.GlassSecondary
+import com.example.ui.theme.NaturalLightTextMuted
+import com.example.ui.theme.NaturalLightTextPrimary
+import com.example.ui.theme.NaturalLightTextSecondary
 
 @Composable
 fun OtaServerScreen(
@@ -92,11 +92,10 @@ fun OtaServerScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Server Header & Live GitHub API Endpoint Card
+        // Server Header & Live GitHub API Endpoint Card (Liquid Glass)
         item {
-            GradientGlowCard(
-                modifier = Modifier.fillMaxWidth(),
-                borderColor = PowerIndigo
+            LiquidGlassCard(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -107,35 +106,42 @@ fun OtaServerScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(PowerIndigo.copy(alpha = 0.2f))
-                                    .border(1.dp, PowerIndigo.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
+                                    .size(46.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                GlassSecondary.copy(alpha = 0.18f),
+                                                GlassPrimary.copy(alpha = 0.12f)
+                                            )
+                                        )
+                                    )
+                                    .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(14.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CloudDone,
                                     contentDescription = null,
-                                    tint = PowerCyan,
+                                    tint = GlassSecondary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Oppo A6X GitHub OTA Server",
+                                    text = "Oppo A6X GitHub Server",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = NaturalLightTextPrimary
                                 )
                                 Text(
                                     text = "Target: ${OtaConstants.DEVICE_MODEL_NAME} (${OtaConstants.DEVICE_CODENAME})",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = PowerCyan
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = GlassSecondary
                                 )
                             }
                         }
 
-                        StatusBadge(text = "LIVE SYNC", color = PowerEmerald, isPulsing = true)
+                        StatusBadge(text = "LIVE SYNC", color = GlassEmerald, isPulsing = true)
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -143,9 +149,9 @@ fun OtaServerScreen(
                     Text(
                         text = "Raw GitHub Updater Manifest URL:",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = NaturalLightTextSecondary
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     if (isEditingUrl) {
                         Row(
@@ -165,7 +171,8 @@ fun OtaServerScreen(
                                     onUpdateServerUrl(currentInputUrl)
                                     isEditingUrl = false
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black)
+                                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
+                                shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text("Save")
                             }
@@ -174,10 +181,10 @@ fun OtaServerScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF090E14))
-                                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.7f))
+                                .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -185,27 +192,27 @@ fun OtaServerScreen(
                                 text = serverUrl,
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.SemiBold
                                 ),
-                                color = PowerCyan,
+                                color = GlassSecondary,
                                 modifier = Modifier.weight(1f)
                             )
                             Row {
                                 IconButton(
                                     onClick = { isEditingUrl = true },
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(28.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit URL", tint = PowerCyan, modifier = Modifier.size(14.dp))
+                                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit URL", tint = GlassSecondary, modifier = Modifier.size(16.dp))
                                 }
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 IconButton(
                                     onClick = {
                                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         clipboard.setPrimaryClip(ClipData.newPlainText("OTA URL", serverUrl))
                                     },
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(28.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy URL", tint = PowerCyan, modifier = Modifier.size(14.dp))
+                                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy URL", tint = GlassSecondary, modifier = Modifier.size(16.dp))
                                 }
                             }
                         }
@@ -218,16 +225,16 @@ fun OtaServerScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Default.Folder, contentDescription = null, tint = PowerIndigo, modifier = Modifier.size(14.dp))
+                        Icon(imageVector = Icons.Default.Folder, contentDescription = null, tint = GlassSecondary, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Target download: /sdcard/Download/OTA/rom.zip",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = NaturalLightTextSecondary
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     // Quick Action Buttons
                     Row(
@@ -238,9 +245,15 @@ fun OtaServerScreen(
                             onClick = onOpenCreateRelease,
                             modifier = Modifier
                                 .weight(1f)
+                                .shadow(
+                                    elevation = 3.dp,
+                                    shape = RoundedCornerShape(12.dp),
+                                    ambientColor = Color(0x150284C7),
+                                    spotColor = GlassPrimary.copy(alpha = 0.3f)
+                                )
                                 .testTag("publish_new_release_btn"),
-                            colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black),
-                            shape = RoundedCornerShape(10.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -252,7 +265,7 @@ fun OtaServerScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("inspect_api_btn"),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(imageVector = Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -263,14 +276,13 @@ fun OtaServerScreen(
             }
         }
 
-        // Quick Deploy Presets for Oppo A6X
+        // Quick Deploy Presets for Oppo A6X (Liquid Glass)
         item {
-            Card(
+            LiquidGlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(14.dp)
+                contentPadding = 14.dp
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -279,21 +291,21 @@ fun OtaServerScreen(
                         Text(
                             text = "Quick Deploy Presets for Oppo A6X",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = NaturalLightTextPrimary
                         )
-                        Icon(imageVector = Icons.Default.RocketLaunch, contentDescription = null, tint = PowerCyan, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.RocketLaunch, contentDescription = null, tint = GlassSecondary, modifier = Modifier.size(18.dp))
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        PresetChip(
+                        PresetGlassChip(
                             title = "v2.2.0 Stable",
                             subtitle = "Oppo A6X Full",
-                            color = PowerCyan,
+                            color = GlassPrimary,
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 onQuickPublishPreset(
@@ -307,10 +319,10 @@ fun OtaServerScreen(
                             }
                         )
 
-                        PresetChip(
+                        PresetGlassChip(
                             title = "v2.3.0 Beta",
                             subtitle = "Incremental 450MB",
-                            color = PowerAmber,
+                            color = GlassAmber,
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 onQuickPublishPreset(
@@ -324,10 +336,10 @@ fun OtaServerScreen(
                             }
                         )
 
-                        PresetChip(
+                        PresetGlassChip(
                             title = "Sec Patch",
                             subtitle = "Sept 2026",
-                            color = PowerEmerald,
+                            color = GlassEmerald,
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 onQuickPublishPreset(
@@ -355,18 +367,18 @@ fun OtaServerScreen(
                 Text(
                     text = "Published Releases (${releases.size})",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = NaturalLightTextPrimary
                 )
                 Text(
                     text = "Oppo A6X",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = PowerCyan
+                    color = GlassPrimary
                 )
             }
         }
 
         items(releases, key = { it.id }) { release ->
-            OtaReleaseItemCard(
+            OtaReleaseItemGlassCard(
                 release = release,
                 onToggleStatus = { onToggleStatus(release) },
                 onDelete = { onDeleteRelease(release.id) }
@@ -376,7 +388,7 @@ fun OtaServerScreen(
 }
 
 @Composable
-private fun PresetChip(
+private fun PresetGlassChip(
     title: String,
     subtitle: String,
     color: Color,
@@ -385,66 +397,66 @@ private fun PresetChip(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(color.copy(alpha = 0.12f))
-            .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.10f))
+            .border(1.dp, color.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
             .clickable { onClick() }
-            .padding(vertical = 8.dp, horizontal = 6.dp),
+            .padding(vertical = 10.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = title, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = color)
-            Text(text = subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = subtitle, style = MaterialTheme.typography.labelSmall, color = NaturalLightTextMuted)
         }
     }
 }
 
 @Composable
-private fun OtaReleaseItemCard(
+private fun OtaReleaseItemGlassCard(
     release: OtaRelease,
     onToggleStatus: () -> Unit,
     onDelete: () -> Unit
 ) {
     val isPublished = release.status == "PUBLISHED"
-    Card(
+    LiquidGlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("release_card_${release.versionCode}"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(18.dp),
+        contentPadding = 14.dp
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusBadge(text = release.releaseChannel, color = if (release.releaseChannel == "Stable") PowerCyan else PowerAmber)
+                    StatusBadge(text = release.releaseChannel, color = if (release.releaseChannel == "Stable") GlassPrimary else GlassAmber)
                     Spacer(modifier = Modifier.width(6.dp))
-                    StatusBadge(text = release.releaseType, color = PowerIndigo)
+                    StatusBadge(text = release.releaseType, color = GlassSecondary)
                     Spacer(modifier = Modifier.width(6.dp))
-                    StatusBadge(text = release.deviceModel, color = PowerEmerald)
+                    StatusBadge(text = release.deviceModel, color = GlassEmerald)
                 }
 
                 StatusBadge(
                     text = release.status,
-                    color = if (isPublished) PowerEmerald else PowerRose
+                    color = if (isPublished) GlassEmerald else GlassRose
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = release.versionName,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
+                color = NaturalLightTextPrimary
             )
 
             Text(
                 text = "Build: ${release.buildNumber}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = NaturalLightTextSecondary
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -456,12 +468,12 @@ private fun OtaReleaseItemCard(
                 Text(
                     text = "Size: ${Formatters.formatBytes(release.packageSizeBytes)}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = NaturalLightTextSecondary
                 )
                 Text(
                     text = "Released: ${Formatters.formatDate(release.releaseDate)}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = NaturalLightTextSecondary
                 )
             }
 
@@ -476,29 +488,29 @@ private fun OtaReleaseItemCard(
                     text = "SHA256: ${release.checksumSha256.take(12)}...",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = NaturalLightTextSecondary
                 )
 
                 Row {
                     IconButton(
                         onClick = onToggleStatus,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
                             imageVector = if (isPublished) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
                             contentDescription = "Toggle status",
-                            tint = if (isPublished) PowerAmber else PowerEmerald
+                            tint = if (isPublished) GlassAmber else GlassEmerald
                         )
                     }
 
                     IconButton(
                         onClick = onDelete,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "Delete release",
-                            tint = PowerRose
+                            tint = GlassRose
                         )
                     }
                 }
@@ -506,3 +518,4 @@ private fun OtaReleaseItemCard(
         }
     }
 }
+

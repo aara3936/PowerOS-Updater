@@ -9,6 +9,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,8 +48,6 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -76,13 +76,17 @@ import com.example.data.model.OtaConstants
 import com.example.data.model.OtaRelease
 import com.example.data.model.SystemDeviceInfo
 import com.example.ui.components.Formatters
-import com.example.ui.components.GradientGlowCard
+import com.example.ui.components.GlassChip
+import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.StatusBadge
-import com.example.ui.theme.PowerAmber
-import com.example.ui.theme.PowerCyan
-import com.example.ui.theme.PowerEmerald
-import com.example.ui.theme.PowerIndigo
-import com.example.ui.theme.PowerRose
+import com.example.ui.theme.GlassAmber
+import com.example.ui.theme.GlassEmerald
+import com.example.ui.theme.GlassPrimary
+import com.example.ui.theme.GlassRose
+import com.example.ui.theme.GlassSecondary
+import com.example.ui.theme.NaturalLightTextMuted
+import com.example.ui.theme.NaturalLightTextPrimary
+import com.example.ui.theme.NaturalLightTextSecondary
 
 @Composable
 fun PowerOsClientScreen(
@@ -114,10 +118,9 @@ fun PowerOsClientScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Device Banner & System Status Card for Oppo A6X
-        GradientGlowCard(
-            modifier = Modifier.fillMaxWidth(),
-            borderColor = if (isNewUpdateAvailable) PowerCyan else PowerEmerald.copy(alpha = 0.5f)
+        // Device Banner & System Status Card for Oppo A6X (Liquid Glass)
+        LiquidGlassCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -128,16 +131,23 @@ fun PowerOsClientScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(PowerCyan.copy(alpha = 0.15f))
-                                .border(1.dp, PowerCyan.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            GlassPrimary.copy(alpha = 0.18f),
+                                            GlassSecondary.copy(alpha = 0.12f)
+                                        )
+                                    )
+                                )
+                                .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(14.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SystemUpdate,
                                 contentDescription = null,
-                                tint = PowerCyan,
+                                tint = GlassPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -147,68 +157,68 @@ fun PowerOsClientScreen(
                                 text = "Power OS",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.sp
+                                    letterSpacing = 0.6.sp
                                 ),
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = NaturalLightTextPrimary
                             )
                             Text(
                                 text = "Device: ${deviceInfo.deviceName}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = PowerCyan
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = GlassPrimary
                             )
                         }
                     }
 
                     if (isNewUpdateAvailable) {
-                        StatusBadge(text = "UPDATE READY", color = PowerCyan, isPulsing = true)
+                        StatusBadge(text = "UPDATE READY", color = GlassPrimary, isPulsing = true)
                     } else {
-                        StatusBadge(text = "UP TO DATE", color = PowerEmerald, isPulsing = false)
+                        StatusBadge(text = "UP TO DATE", color = GlassEmerald, isPulsing = false)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Installed System Version Display
                 Text(
                     text = deviceInfo.currentOsVersion,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = NaturalLightTextPrimary
                 )
                 Text(
-                    text = "Build: ${deviceInfo.currentBuildNumber}",
+                    text = "Build Fingerprint: ${deviceInfo.currentBuildNumber}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = NaturalLightTextSecondary
                 )
                 Text(
                     text = "Security Patch: ${deviceInfo.securityPatch}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                    color = GlassEmerald
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Target Storage Directory Card
+                // Target Storage Directory Card (Glass styling)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF090E14))
-                        .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.7f))
+                        .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Folder,
                         contentDescription = null,
-                        tint = PowerIndigo,
-                        modifier = Modifier.size(16.dp)
+                        tint = GlassSecondary,
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Target ROM Location:",
+                            text = "Target ROM Filepath:",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = NaturalLightTextMuted
                         )
                         Text(
                             text = OtaConstants.DEFAULT_TARGET_FILE_PATH,
@@ -216,20 +226,21 @@ fun PowerOsClientScreen(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.SemiBold
                             ),
-                            color = PowerCyan
+                            color = GlassPrimary
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Hardware Status Metrics (Battery, Storage, Wi-Fi)
+                // Hardware Status Metrics (Battery, Storage, Wi-Fi) with Frosted Pill container
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .padding(10.dp),
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.White.copy(alpha = 0.65f))
+                        .border(1.dp, Color(0x26CBD5E1), RoundedCornerShape(14.dp))
+                        .padding(vertical = 10.dp, horizontal = 12.dp),
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -238,47 +249,50 @@ fun PowerOsClientScreen(
                         Icon(
                             imageVector = if (deviceInfo.isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
                             contentDescription = null,
-                            tint = if (deviceInfo.batteryLevel > 30) PowerEmerald else PowerAmber,
+                            tint = if (deviceInfo.batteryLevel > 30) GlassEmerald else GlassAmber,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "${deviceInfo.batteryLevel}%",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = NaturalLightTextPrimary
                         )
                     }
 
-                    Box(modifier = Modifier.size(1.dp, 16.dp).background(MaterialTheme.colorScheme.outlineVariant))
+                    Box(modifier = Modifier.size(1.dp, 16.dp).background(Color(0x33CBD5E1)))
 
                     // Storage Metric
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Storage,
                             contentDescription = null,
-                            tint = PowerCyan,
+                            tint = GlassPrimary,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "${deviceInfo.storageFreeGb} GB Free",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = NaturalLightTextPrimary
                         )
                     }
 
-                    Box(modifier = Modifier.size(1.dp, 16.dp).background(MaterialTheme.colorScheme.outlineVariant))
+                    Box(modifier = Modifier.size(1.dp, 16.dp).background(Color(0x33CBD5E1)))
 
                     // Network Metric
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Wifi,
                             contentDescription = null,
-                            tint = PowerIndigo,
+                            tint = GlassSecondary,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Wi-Fi 6",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = NaturalLightTextPrimary
                         )
                     }
                 }
@@ -286,43 +300,30 @@ fun PowerOsClientScreen(
         }
 
         // Release Channel Selector Tabs (Stable / Beta / Dev)
-        Card(
+        LiquidGlassCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-            shape = RoundedCornerShape(14.dp)
+            contentPadding = 14.dp
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column {
                 Text(
-                    text = "Oppo A6X Release Stream",
+                    text = "Release Stream",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = NaturalLightTextSecondary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     channels.forEach { ch ->
                         val isSelected = ch == selectedChannel
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (isSelected) PowerCyan else MaterialTheme.colorScheme.surfaceVariant
-                                )
-                                .clickable { onSelectChannel(ch) }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = ch,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                ),
-                                color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                        GlassChip(
+                            text = ch,
+                            isSelected = isSelected,
+                            onClick = { onSelectChannel(ch) },
+                            modifier = Modifier.weight(1f),
+                            activeColor = if (ch == "Stable") GlassPrimary else if (ch == "Beta") GlassAmber else GlassSecondary
+                        )
                     }
                 }
             }
@@ -338,12 +339,12 @@ fun PowerOsClientScreen(
                 Text(
                     text = "GitHub Raw Sync:",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = NaturalLightTextMuted
                 )
                 Text(
                     text = Formatters.formatDate(lastCheckTime),
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = NaturalLightTextPrimary
                 )
             }
 
@@ -361,9 +362,19 @@ fun PowerOsClientScreen(
             Button(
                 onClick = onCheckForUpdates,
                 enabled = !isChecking,
-                colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.testTag("check_updates_button")
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = GlassPrimary,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        ambientColor = Color(0x150284C7),
+                        spotColor = GlassPrimary.copy(alpha = 0.35f)
+                    )
+                    .testTag("check_updates_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
@@ -380,21 +391,24 @@ fun PowerOsClientScreen(
             }
         }
 
-        // Update Details Card
+        // Update Details Card (Liquid Glass with frosted sheen)
         if (latestRelease != null && isNewUpdateAvailable) {
-            Card(
+            LiquidGlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("new_update_card"),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(18.dp),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = Brush.verticalGradient(
-                        listOf(PowerCyan.copy(alpha = 0.7f), PowerIndigo.copy(alpha = 0.4f))
+                borderStroke = BorderStroke(
+                    1.dp,
+                    Brush.verticalGradient(
+                        listOf(
+                            GlassPrimary.copy(alpha = 0.6f),
+                            GlassSecondary.copy(alpha = 0.3f),
+                            Color.White.copy(alpha = 0.8f)
+                        )
                     )
                 )
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -402,29 +416,30 @@ fun PowerOsClientScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                StatusBadge(text = latestRelease.releaseChannel, color = PowerCyan)
+                                StatusBadge(text = latestRelease.releaseChannel, color = GlassPrimary)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                StatusBadge(text = latestRelease.deviceModel, color = PowerIndigo)
+                                StatusBadge(text = latestRelease.deviceModel, color = GlassSecondary)
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = latestRelease.versionName,
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = NaturalLightTextPrimary
                             )
                         }
 
                         // Size badge
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(PowerCyan.copy(alpha = 0.15f))
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(GlassPrimary.copy(alpha = 0.12f))
+                                .border(1.dp, GlassPrimary.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = Formatters.formatBytes(latestRelease.packageSizeBytes),
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = PowerCyan
+                                color = GlassPrimary
                             )
                         }
                     }
@@ -434,12 +449,12 @@ fun PowerOsClientScreen(
                     Text(
                         text = "Build: ${latestRelease.buildNumber}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = NaturalLightTextSecondary
                     )
                     Text(
                         text = "Android Security: ${latestRelease.securityPatch}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PowerEmerald
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                        color = GlassEmerald
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -448,7 +463,7 @@ fun PowerOsClientScreen(
                     Text(
                         text = "What's New in this Build:",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = NaturalLightTextPrimary
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -456,15 +471,15 @@ fun PowerOsClientScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF090E14))
-                            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(10.dp))
-                            .padding(12.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = 0.85f))
+                            .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(14.dp))
+                            .padding(14.dp)
                     ) {
                         Text(
                             text = latestRelease.changelog,
-                            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
-                            color = MaterialTheme.colorScheme.onSurface
+                            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 19.sp),
+                            color = NaturalLightTextPrimary
                         )
                     }
 
@@ -474,9 +489,10 @@ fun PowerOsClientScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White.copy(alpha = 0.6f))
+                            .border(1.dp, Color(0x26CBD5E1), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -484,7 +500,7 @@ fun PowerOsClientScreen(
                             text = "SHA256: ${latestRelease.checksumSha256.take(16)}...",
                             style = MaterialTheme.typography.labelSmall,
                             fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = NaturalLightTextSecondary
                         )
                         IconButton(
                             onClick = {
@@ -496,7 +512,7 @@ fun PowerOsClientScreen(
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
                                 contentDescription = "Copy SHA-256",
-                                tint = PowerCyan,
+                                tint = GlassPrimary,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -511,9 +527,18 @@ fun PowerOsClientScreen(
                                 onClick = { onStartDownload(latestRelease) },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = RoundedCornerShape(14.dp),
+                                        ambientColor = Color(0x150284C7),
+                                        spotColor = GlassPrimary.copy(alpha = 0.4f)
+                                    )
                                     .testTag("start_download_btn"),
-                                colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black),
-                                shape = RoundedCornerShape(12.dp)
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = GlassPrimary,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(14.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Download, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -533,16 +558,16 @@ fun PowerOsClientScreen(
                                     Text(
                                         text = "${(downloadProgress.progress * 100).toInt()}% Downloaded",
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = PowerCyan
+                                        color = GlassPrimary
                                     )
                                     Text(
                                         text = "${Formatters.formatSpeed(downloadProgress.speedBytesPerSec)} · ${Formatters.formatEta(downloadProgress.etaSeconds)}",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = NaturalLightTextSecondary
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
 
                                 LinearProgressIndicator(
                                     progress = { downloadProgress.progress },
@@ -550,11 +575,11 @@ fun PowerOsClientScreen(
                                         .fillMaxWidth()
                                         .height(8.dp)
                                         .clip(RoundedCornerShape(4.dp)),
-                                    color = PowerCyan,
-                                    trackColor = MaterialTheme.colorScheme.surface
+                                    color = GlassPrimary,
+                                    trackColor = Color(0xFFE2E8F0)
                                 )
 
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -563,16 +588,16 @@ fun PowerOsClientScreen(
                                     Text(
                                         text = "${Formatters.formatBytes(downloadProgress.downloadedBytes)} / ${Formatters.formatBytes(downloadProgress.totalBytes)}",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = NaturalLightTextSecondary
                                     )
                                     Text(
-                                        text = "Saved to: /sdcard/Download/OTA/rom.zip",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = PowerCyan
+                                        text = "Saved: /sdcard/Download/OTA/rom.zip",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        color = GlassPrimary
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(14.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -581,7 +606,7 @@ fun PowerOsClientScreen(
                                     OutlinedButton(
                                         onClick = onPauseDownload,
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(imageVector = Icons.Default.Pause, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -590,8 +615,8 @@ fun PowerOsClientScreen(
                                     OutlinedButton(
                                         onClick = onCancelDownload,
                                         modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PowerRose),
-                                        shape = RoundedCornerShape(10.dp)
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = GlassRose),
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -605,8 +630,8 @@ fun PowerOsClientScreen(
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = "Download paused at ${(downloadProgress.progress * 100).toInt()}%",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = PowerAmber
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = GlassAmber
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(
@@ -616,8 +641,11 @@ fun PowerOsClientScreen(
                                     Button(
                                         onClick = { onResumeDownload(latestRelease) },
                                         modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black),
-                                        shape = RoundedCornerShape(10.dp)
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = GlassPrimary,
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null)
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -626,8 +654,8 @@ fun PowerOsClientScreen(
                                     OutlinedButton(
                                         onClick = onCancelDownload,
                                         modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PowerRose),
-                                        shape = RoundedCornerShape(10.dp)
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = GlassRose),
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Text("Cancel")
                                     }
@@ -639,16 +667,16 @@ fun PowerOsClientScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
+                                    .padding(vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = PowerCyan)
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = GlassPrimary)
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = downloadProgress.currentStep,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = PowerCyan
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                    color = GlassPrimary
                                 )
                             }
                         }
@@ -658,9 +686,18 @@ fun PowerOsClientScreen(
                                 onClick = { onOpenInstallDialog(latestRelease) },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = RoundedCornerShape(14.dp),
+                                        ambientColor = Color(0x1510B981),
+                                        spotColor = GlassEmerald.copy(alpha = 0.4f)
+                                    )
                                     .testTag("reboot_install_trigger_btn"),
-                                colors = ButtonDefaults.buttonColors(containerColor = PowerEmerald, contentColor = Color.Black),
-                                shape = RoundedCornerShape(12.dp)
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = GlassEmerald,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(14.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -676,35 +713,34 @@ fun PowerOsClientScreen(
                 }
             }
         } else if (!isChecking) {
-            // Up to date card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(16.dp)
+            // Up to date card (Liquid Glass)
+            LiquidGlassCard(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(PowerEmerald.copy(alpha = 0.15f)),
+                            .background(GlassEmerald.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = PowerEmerald)
+                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = GlassEmerald)
                     }
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
                             text = "Oppo A6X is Up to Date",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = NaturalLightTextPrimary
                         )
                         Text(
                             text = "Your device has the latest Power OS build and security definitions.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = NaturalLightTextSecondary
                         )
                     }
                 }
@@ -715,36 +751,36 @@ fun PowerOsClientScreen(
         Text(
             text = "Oppo A6X Utilities",
             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = NaturalLightTextSecondary
         )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            QuickToolCard(
+            QuickToolGlassCard(
                 title = "Device Specs",
-                subtitle = "Oppo A6X specs",
+                subtitle = "Hardware details",
                 icon = Icons.Default.Memory,
-                iconColor = PowerCyan,
+                iconColor = GlassPrimary,
                 modifier = Modifier.weight(1f),
                 onClick = onOpenDeviceSpecs,
                 testTag = "quick_tool_specs"
             )
-            QuickToolCard(
+            QuickToolGlassCard(
                 title = "Local Package",
                 subtitle = "Flash rom.zip",
                 icon = Icons.Default.FolderZip,
-                iconColor = PowerIndigo,
+                iconColor = GlassSecondary,
                 modifier = Modifier.weight(1f),
                 onClick = onOpenLocalInstall,
                 testTag = "quick_tool_local_zip"
             )
-            QuickToolCard(
+            QuickToolGlassCard(
                 title = "OTA History",
-                subtitle = "Build logs",
+                subtitle = "Update records",
                 icon = Icons.Default.History,
-                iconColor = PowerEmerald,
+                iconColor = GlassEmerald,
                 modifier = Modifier.weight(1f),
                 onClick = onOpenHistory,
                 testTag = "quick_tool_history"
@@ -754,7 +790,7 @@ fun PowerOsClientScreen(
 }
 
 @Composable
-private fun QuickToolCard(
+private fun QuickToolGlassCard(
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -763,37 +799,38 @@ private fun QuickToolCard(
     onClick: () -> Unit,
     testTag: String
 ) {
-    Card(
+    LiquidGlassCard(
         modifier = modifier
             .clickable { onClick() }
             .testTag(testTag),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = 12.dp
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .background(iconColor.copy(alpha = 0.15f)),
+                    .background(iconColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
+                Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(22.dp))
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
+                color = NaturalLightTextPrimary
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = NaturalLightTextMuted
             )
         }
     }
 }
+

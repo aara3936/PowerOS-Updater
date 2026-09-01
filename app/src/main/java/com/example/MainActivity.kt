@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDone
@@ -51,6 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -69,9 +72,14 @@ import com.example.ui.dialogs.RecoveryInstallDialog
 import com.example.ui.dialogs.ServerApiInspectorDialog
 import com.example.ui.dialogs.UpdateHistoryDialog
 import com.example.ui.server.OtaServerScreen
+import com.example.ui.theme.GlassEmerald
+import com.example.ui.theme.GlassPrimary
+import com.example.ui.theme.GlassSecondary
 import com.example.ui.theme.MyApplicationTheme
-import com.example.ui.theme.PowerCyan
-import com.example.ui.theme.PowerIndigo
+import com.example.ui.theme.NaturalLightBackground
+import com.example.ui.theme.NaturalLightTextMuted
+import com.example.ui.theme.NaturalLightTextPrimary
+import com.example.ui.theme.NaturalLightTextSecondary
 
 class MainActivity : ComponentActivity() {
     private val viewModel: UpdaterViewModel by viewModels()
@@ -106,12 +114,13 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .statusBarsPadding()
                         .navigationBarsPadding(),
+                    containerColor = NaturalLightBackground,
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.background)
+                                .background(NaturalLightBackground)
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             // Main App Header
@@ -123,30 +132,37 @@ class MainActivity : ComponentActivity() {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
                                         modifier = Modifier
-                                            .size(38.dp)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(PowerCyan.copy(alpha = 0.2f))
-                                            .border(1.dp, PowerCyan.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
+                                            .size(42.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        GlassPrimary.copy(alpha = 0.16f),
+                                                        GlassSecondary.copy(alpha = 0.12f)
+                                                    )
+                                                )
+                                            )
+                                            .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.PowerSettingsNew,
                                             contentDescription = null,
-                                            tint = PowerCyan,
+                                            tint = GlassPrimary,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(
                                             text = "Power OS",
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            color = NaturalLightTextPrimary
                                         )
                                         Text(
                                             text = "${OtaConstants.DEVICE_MODEL_NAME} · GitHub OTA",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = PowerCyan
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                            color = GlassPrimary
                                         )
                                     }
                                 }
@@ -159,7 +175,7 @@ class MainActivity : ComponentActivity() {
                                         Icon(
                                             imageVector = Icons.Default.Info,
                                             contentDescription = "About Power OS",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint = NaturalLightTextSecondary
                                         )
                                     }
                                 }
@@ -171,8 +187,9 @@ class MainActivity : ComponentActivity() {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color.White.copy(alpha = 0.8f))
+                                    .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(16.dp))
                                     .padding(4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
@@ -180,10 +197,18 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isClient) PowerCyan else Color.Transparent)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (isClient) {
+                                                Brush.horizontalGradient(
+                                                    listOf(Color(0xFF0284C7), Color(0xFF38BDF8))
+                                                )
+                                            } else {
+                                                Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
+                                            }
+                                        )
                                         .clickable { viewModel.selectSubstance(AppSubstance.CLIENT_UPDATER) }
-                                        .padding(vertical = 8.dp)
+                                        .padding(vertical = 10.dp)
                                         .testTag("substance_client_tab"),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -191,7 +216,7 @@ class MainActivity : ComponentActivity() {
                                         Icon(
                                             imageVector = Icons.Default.PhoneAndroid,
                                             contentDescription = null,
-                                            tint = if (isClient) Color.Black else MaterialTheme.colorScheme.onSurface,
+                                            tint = if (isClient) Color.White else NaturalLightTextSecondary,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -200,7 +225,7 @@ class MainActivity : ComponentActivity() {
                                             style = MaterialTheme.typography.labelMedium.copy(
                                                 fontWeight = if (isClient) FontWeight.Bold else FontWeight.Medium
                                             ),
-                                            color = if (isClient) Color.Black else MaterialTheme.colorScheme.onSurface
+                                            color = if (isClient) Color.White else NaturalLightTextSecondary
                                         )
                                     }
                                 }
@@ -209,10 +234,18 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isServer) PowerIndigo else Color.Transparent)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (isServer) {
+                                                Brush.horizontalGradient(
+                                                    listOf(Color(0xFF4F46E5), Color(0xFF818CF8))
+                                                )
+                                            } else {
+                                                Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
+                                            }
+                                        )
                                         .clickable { viewModel.selectSubstance(AppSubstance.OTA_SERVER) }
-                                        .padding(vertical = 8.dp)
+                                        .padding(vertical = 10.dp)
                                         .testTag("substance_server_tab"),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -220,7 +253,7 @@ class MainActivity : ComponentActivity() {
                                         Icon(
                                             imageVector = Icons.Default.CloudDone,
                                             contentDescription = null,
-                                            tint = if (isServer) Color.White else MaterialTheme.colorScheme.onSurface,
+                                            tint = if (isServer) Color.White else NaturalLightTextSecondary,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -229,7 +262,7 @@ class MainActivity : ComponentActivity() {
                                             style = MaterialTheme.typography.labelMedium.copy(
                                                 fontWeight = if (isServer) FontWeight.Bold else FontWeight.Medium
                                             ),
-                                            color = if (isServer) Color.White else MaterialTheme.colorScheme.onSurface
+                                            color = if (isServer) Color.White else NaturalLightTextSecondary
                                         )
                                     }
                                 }
@@ -351,30 +384,42 @@ class MainActivity : ComponentActivity() {
                 if (showAboutDialog) {
                     AlertDialog(
                         onDismissRequest = { showAboutDialog = false },
+                        containerColor = Color.White,
+                        shape = RoundedCornerShape(20.dp),
                         title = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = null, tint = PowerCyan)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("About Power OS")
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(GlassPrimary.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = null, tint = GlassPrimary, modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text("About Power OS", color = NaturalLightTextPrimary, fontWeight = FontWeight.Bold)
                             }
                         },
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = "Power OS OTA Updater (Oppo A6X)",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = NaturalLightTextPrimary
                                 )
                                 Text(
                                     text = "Live parameters configured:\n• Raw JSON: ${OtaConstants.DEFAULT_RAW_JSON_URL}\n• Target Directory: ${OtaConstants.DEFAULT_TARGET_FILE_PATH}\n• Device Model: ${OtaConstants.DEVICE_MODEL_NAME}\n\nFeatures 1-click update checks, real streaming download to /sdcard/Download/OTA/rom.zip, SHA-256 integrity verification, and Oppo A6X recovery flashing.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = NaturalLightTextSecondary
                                 )
                             }
                         },
                         confirmButton = {
                             Button(
                                 onClick = { showAboutDialog = false },
-                                colors = ButtonDefaults.buttonColors(containerColor = PowerCyan, contentColor = Color.Black)
+                                colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary, contentColor = Color.White),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text("OK", fontWeight = FontWeight.Bold)
                             }
@@ -385,3 +430,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
