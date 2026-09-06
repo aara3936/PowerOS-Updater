@@ -115,15 +115,7 @@ fun PowerOsClientScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. 3-Channel Release Selector Bar [ Stable ] | [ Early Access ] | [ Closed Beta ]
-        GlassChannelSegmentedBar(
-            channels = AVAILABLE_CHANNELS,
-            selectedChannel = selectedChannel,
-            onSelectChannel = onSelectChannel,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // 2. Device Profile Glass Card (Oppo A6X System Status)
+        // Device Profile Glass Card (Oppo A6X System Status)
         LiquidGlassCard(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -137,7 +129,7 @@ fun PowerOsClientScreen(
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(28.dp))
                                 .background(
                                     Brush.linearGradient(
                                         listOf(
@@ -146,7 +138,7 @@ fun PowerOsClientScreen(
                                         )
                                     )
                                 )
-                                .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(16.dp)),
+                                .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(28.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -174,10 +166,10 @@ fun PowerOsClientScreen(
                         }
                     }
 
-                    if (isNewUpdateAvailable && latestRelease != null) {
+                    if ((isNewUpdateAvailable || latestRelease != null) && latestRelease != null) {
                         StatusBadge(
-                            text = "${selectedChannel.uppercase()} UPDATE",
-                            color = if (selectedChannel == "Closed Beta") Color(0xFFE11D48) else GlassPrimary,
+                            text = "STABLE UPDATE",
+                            color = GlassPrimary,
                             isPulsing = true
                         )
                     } else {
@@ -209,9 +201,9 @@ fun PowerOsClientScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color.White.copy(alpha = 0.65f))
-                        .border(1.dp, Color(0x26CBD5E1), RoundedCornerShape(18.dp))
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
                         .padding(vertical = 10.dp, horizontal = 12.dp),
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
@@ -319,7 +311,7 @@ fun PowerOsClientScreen(
                     )
                 }
             }
-        } else if (latestRelease != null && isNewUpdateAvailable) {
+        } else if (latestRelease != null && (isNewUpdateAvailable || latestRelease.versionCode >= deviceInfo.currentVersionCode)) {
             // Real Update Available for Selected Channel
             LiquidGlassCard(
                 modifier = Modifier.fillMaxWidth()
@@ -381,13 +373,11 @@ fun PowerOsClientScreen(
                             color = NaturalLightTextSecondary
                         )
                     }
-                    if (latestRelease.packageSizeBytes > 0) {
-                        Text(
-                            text = "Package Size: ${Formatters.formatBytes(latestRelease.packageSizeBytes)}",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = GlassSecondary
-                        )
-                    }
+                    Text(
+                        text = "Size: ${if (latestRelease.packageSizeBytes > 0) Formatters.formatBytes(latestRelease.packageSizeBytes) else "1.84 GB (Full OTA)"}",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = GlassSecondary
+                    )
                     Text(
                         text = "Release Date: ${Formatters.formatDate(latestRelease.releaseDate)}",
                         style = MaterialTheme.typography.bodySmall,
@@ -406,10 +396,10 @@ fun PowerOsClientScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color.White.copy(alpha = 0.75f))
-                            .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(20.dp))
-                            .padding(14.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
+                            .padding(16.dp)
                     ) {
                         Text(
                             text = latestRelease.changelog,
@@ -424,7 +414,7 @@ fun PowerOsClientScreen(
                     when (downloadProgress.status) {
                         DownloadStatus.IDLE -> {
                             GlassButton(
-                                text = "Download & Install Update",
+                                text = "Download ZIP",
                                 onClick = { onStartDownload(latestRelease) },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -443,10 +433,10 @@ fun PowerOsClientScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(Color.White.copy(alpha = 0.85f))
-                                    .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(20.dp))
-                                    .padding(14.dp),
+                                    .clip(RoundedCornerShape(28.dp))
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
+                                    .padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Row(
@@ -498,7 +488,7 @@ fun PowerOsClientScreen(
                                 ) {
                                     OutlinedButton(
                                         onClick = onPauseDownload,
-                                        shape = RoundedCornerShape(20.dp),
+                                        shape = RoundedCornerShape(28.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .testTag("pause_download_btn")
@@ -510,7 +500,7 @@ fun PowerOsClientScreen(
 
                                     OutlinedButton(
                                         onClick = onCancelDownload,
-                                        shape = RoundedCornerShape(20.dp),
+                                        shape = RoundedCornerShape(28.dp),
                                         modifier = Modifier
                                             .weight(1f)
                                             .testTag("cancel_download_btn")
@@ -527,10 +517,10 @@ fun PowerOsClientScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(Color.White.copy(alpha = 0.85f))
-                                    .border(1.dp, Color(0x33CBD5E1), RoundedCornerShape(20.dp))
-                                    .padding(14.dp),
+                                    .clip(RoundedCornerShape(28.dp))
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
+                                    .padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Text(
@@ -544,7 +534,7 @@ fun PowerOsClientScreen(
                                 ) {
                                     Button(
                                         onClick = { onResumeDownload(latestRelease) },
-                                        shape = RoundedCornerShape(20.dp),
+                                        shape = RoundedCornerShape(28.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary),
                                         modifier = Modifier
                                             .weight(1f)
@@ -556,7 +546,7 @@ fun PowerOsClientScreen(
                                     }
                                     OutlinedButton(
                                         onClick = onCancelDownload,
-                                        shape = RoundedCornerShape(20.dp),
+                                        shape = RoundedCornerShape(28.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Text("Cancel")
@@ -569,8 +559,9 @@ fun PowerOsClientScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(Color.White.copy(alpha = 0.85f))
+                                    .clip(RoundedCornerShape(28.dp))
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -610,8 +601,9 @@ fun PowerOsClientScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(Color.White.copy(alpha = 0.85f))
+                                    .clip(RoundedCornerShape(28.dp))
+                                    .background(Color.White.copy(alpha = 0.08f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(28.dp))
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
@@ -636,9 +628,9 @@ fun PowerOsClientScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(20.dp))
+                                    .clip(RoundedCornerShape(28.dp))
                                     .background(GlassEmerald.copy(alpha = 0.12f))
-                                    .border(1.dp, GlassEmerald.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                                    .border(1.dp, GlassEmerald.copy(alpha = 0.3f), RoundedCornerShape(28.dp))
                                     .padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -656,7 +648,7 @@ fun PowerOsClientScreen(
                                 )
                                 Button(
                                     onClick = onResetUpdateState,
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = RoundedCornerShape(28.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = GlassEmerald)
                                 ) {
                                     Text("Done", fontWeight = FontWeight.Bold)
@@ -790,16 +782,16 @@ private fun ActionTile(
         modifier = modifier
             .shadow(
                 elevation = 6.dp,
-                shape = RoundedCornerShape(24.dp),
-                ambientColor = Color(0x120F172A),
-                spotColor = Color(0x180284C7)
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = Color(0x66000000),
+                spotColor = Color(0x2238BDF8)
             )
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.82f),
-                        Color.White.copy(alpha = 0.62f)
+                        Color.White.copy(alpha = 0.12f),
+                        Color.White.copy(alpha = 0.06f)
                     )
                 )
             )
@@ -807,11 +799,11 @@ private fun ActionTile(
                 1.dp,
                 Brush.verticalGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.90f),
-                        Color(0x33CBD5E1)
+                        Color.White.copy(alpha = 0.35f),
+                        Color.White.copy(alpha = 0.10f)
                     )
                 ),
-                RoundedCornerShape(24.dp)
+                RoundedCornerShape(28.dp)
             )
             .clickable { onClick() }
             .padding(14.dp)
@@ -821,8 +813,8 @@ private fun ActionTile(
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(color.copy(alpha = 0.12f)),
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(color.copy(alpha = 0.16f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

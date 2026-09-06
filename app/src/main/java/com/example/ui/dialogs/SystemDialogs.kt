@@ -76,9 +76,7 @@ import com.example.ui.theme.NaturalLightTextMuted
 import com.example.ui.theme.NaturalLightTextPrimary
 import com.example.ui.theme.NaturalLightTextSecondary
 
-/**
- * Oppo A6X System & Hardware Diagnostics Dialog (26dp Rounded Glassmorphism).
- */
+// Oppo A6X System & Hardware Diagnostics Dialog (28dp Rounded Glassmorphism).
 @Composable
 fun DeviceSpecsDialog(
     deviceInfo: SystemDeviceInfo,
@@ -86,7 +84,7 @@ fun DeviceSpecsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(28.dp),
         containerColor = NaturalLightCardBackground,
         title = {
             Row(
@@ -142,7 +140,7 @@ fun DeviceSpecsDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary),
                 modifier = Modifier.testTag("close_specs_btn")
             ) {
@@ -200,7 +198,7 @@ fun UpdateHistoryDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(28.dp),
         containerColor = NaturalLightCardBackground,
         title = {
             Row(
@@ -316,7 +314,7 @@ fun UpdateHistoryDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = GlassSecondary),
                 modifier = Modifier.testTag("close_history_btn")
             ) {
@@ -337,7 +335,7 @@ fun LocalPackageInstallDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(28.dp),
         containerColor = NaturalLightCardBackground,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -407,7 +405,7 @@ fun LocalPackageInstallDialog(
                     onInstallLocalFile()
                     onDismiss()
                 },
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary),
                 modifier = Modifier.testTag("sideload_install_confirm_btn")
             ) {
@@ -417,7 +415,7 @@ fun LocalPackageInstallDialog(
         dismissButton = {
             OutlinedButton(
                 onClick = onDismiss,
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(28.dp)
             ) {
                 Text("Cancel")
             }
@@ -438,7 +436,7 @@ fun RecoveryInstallDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(28.dp),
         containerColor = NaturalLightCardBackground,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -517,7 +515,7 @@ fun RecoveryInstallDialog(
                     onConfirmInstall()
                     onDismiss()
                 },
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = GlassEmerald),
                 modifier = Modifier.testTag("confirm_reboot_install_btn")
             ) {
@@ -527,7 +525,7 @@ fun RecoveryInstallDialog(
         dismissButton = {
             OutlinedButton(
                 onClick = onDismiss,
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(28.dp)
             ) {
                 Text("Later")
             }

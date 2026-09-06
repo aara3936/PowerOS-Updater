@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.OtaConstants
 import com.example.ui.UpdaterViewModel
 import com.example.ui.client.PowerOsClientScreen
+import com.example.ui.components.GlassBackground
 import com.example.ui.dialogs.DeviceSpecsDialog
 import com.example.ui.dialogs.LocalPackageInstallDialog
 import com.example.ui.dialogs.RecoveryInstallDialog
@@ -94,19 +95,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Ambient gradient background
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0xFFEFF6FF), // Soft Icy Sky
-                                    Color(0xFFF1F5F9), // Pearl White
-                                    Color(0xFFF8FAFC)
-                                )
-                            )
-                        )
+                // Night-Field Wallpaper & Liquid Glass Architecture
+                GlassBackground(
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     Scaffold(
                         modifier = Modifier
@@ -128,16 +119,16 @@ class MainActivity : ComponentActivity() {
                                     Box(
                                         modifier = Modifier
                                             .size(44.dp)
-                                            .clip(RoundedCornerShape(16.dp))
+                                            .clip(RoundedCornerShape(28.dp))
                                             .background(
                                                 Brush.linearGradient(
                                                     listOf(
-                                                        GlassPrimary.copy(alpha = 0.18f),
-                                                        GlassSecondary.copy(alpha = 0.12f)
+                                                        GlassPrimary.copy(alpha = 0.22f),
+                                                        GlassSecondary.copy(alpha = 0.16f)
                                                     )
                                                 )
                                             )
-                                            .border(1.dp, Color.White.copy(alpha = 0.9f), RoundedCornerShape(16.dp)),
+                                            .border(1.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(28.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
@@ -290,7 +281,7 @@ class MainActivity : ComponentActivity() {
                                     color = NaturalLightTextPrimary
                                 )
                                 Text(
-                                    text = "• Channels: Stable, Early Access, Closed Beta\n• Device Model: ${OtaConstants.DEVICE_MODEL_NAME}\n• Local Target: ${OtaConstants.DEFAULT_TARGET_FILE_PATH}\n\nFeatures live manifest synchronization, real HTTP streaming ROM downloads with SHA-256 verification, and Oppo recovery package flashing.",
+                                    text = "• Channel: Power OS Stable\n• Device Model: ${OtaConstants.DEVICE_MODEL_NAME}\n• Local Target: ${OtaConstants.DEFAULT_TARGET_FILE_PATH}\n\nFeatures live manifest synchronization, real HTTP streaming ROM downloads with SHA-256 verification, and Oppo recovery package flashing.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = NaturalLightTextSecondary
                                 )
@@ -300,7 +291,7 @@ class MainActivity : ComponentActivity() {
                             Button(
                                 onClick = { showAboutDialog = false },
                                 colors = ButtonDefaults.buttonColors(containerColor = GlassPrimary),
-                                shape = RoundedCornerShape(24.dp)
+                                shape = RoundedCornerShape(28.dp)
                             ) {
                                 Text("OK", fontWeight = FontWeight.Bold)
                             }

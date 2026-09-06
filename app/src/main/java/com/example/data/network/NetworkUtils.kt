@@ -72,48 +72,62 @@ object NetworkUtils {
 
     /**
      * Fetches and parses the live OTA JSON from GitHub raw repository:
-     * https://raw.githubusercontent.com/aara3936/Oppo-A6X-OTA/main/updater.json
+     * Tries primary URL (metadata.json), and falls back to updater.json if primary fails.
      */
     suspend fun fetchOtaManifest(
         rawUrl: String = OtaConstants.DEFAULT_RAW_JSON_URL
     ): Result<List<OtaRelease>> = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder()
-                .url(rawUrl)
-                .addHeader("User-Agent", "PowerOS-OppoA6X-OTA/2.0")
-                .addHeader("Accept", "application/json, text/plain, */*")
-                .build()
-
-            val response = okHttpClient.newCall(request).execute()
-            if (!response.isSuccessful) {
-                val code = response.code
-                response.close()
-                return@withContext Result.failure(
-                    IllegalStateException("GitHub OTA server returned HTTP $code for $rawUrl")
-                )
-            }
-
-            val bodyString = response.body?.string().orEmpty()
-            response.close()
-
-            if (bodyString.isBlank()) {
-                return@withContext Result.failure(IllegalStateException("Empty response from GitHub OTA endpoint"))
-            }
-
-            val parsedReleases = parseOtaJson(bodyString, rawUrl)
-            if (parsedReleases.isNotEmpty()) {
-                Result.success(parsedReleases)
-            } else {
-                Result.failure(IllegalStateException("No valid Oppo A6X releases parsed from JSON"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
+        val urlsToTry = if (rawUrl != OtaConstants.DEFAULT_FALLBACK_JSON_URL) {
+            listOf(rawUrl, OtaConstants.DEFAULT_FALLBACK_JSON_URL)
+        } else {
+            listOf(rawUrl)
         }
+
+        var lastError: Exception? = null
+        for (currentUrl in urlsToTry) {
+            try {
+                val request = Request.Builder()
+                    .url(currentUrl)
+                    .addHeader("User-Agent", "PowerOS-OppoA6X-OTA/2.0")
+                    .addHeader("Accept", "application/json, text/plain, */*")
+                    .build()
+
+                val response = okHttpClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    val code = response.code
+                    response.close()
+                    lastError = IllegalStateException("GitHub OTA server returned HTTP $code for $currentUrl")
+                    continue
+                }
+
+                val bodyString = response.body?.string().orEmpty()
+                response.close()
+
+                if (bodyString.isBlank()) {
+                    lastError = IllegalStateException("Empty response from $currentUrl")
+                    continue
+                }
+
+                val parsedReleases = parseOtaJson(bodyString, currentUrl)
+                if (parsedReleases.isNotEmpty()) {
+                    return@withContext Result.success(parsedReleases)
+                } else {
+                    lastError = IllegalStateException("No valid releases found in $currentUrl")
+                }
+            } catch (e: Exception) {
+                lastError = e
+            }
+        }
+        Result.failure(lastError ?: IllegalStateException("Unable to fetch manifest"))
     }
 
     /**
      * Parses raw JSON string into a list of [OtaRelease].
-     * Supports Custom ROM / LineageOS response format, direct JSON object, or JSON array.
+     * Supports:
+     * - Nested channel dictionary objects (e.g. "stable", "early_access", "closed_beta", "beta")
+     * - Arrays of releases
+     * - Wrapped responses ("response", "updates", "releases")
+     * - Single release objects at the root
      */
     fun parseOtaJson(jsonString: String, sourceUrl: String = OtaConstants.DEFAULT_RAW_JSON_URL): List<OtaRelease> {
         val releases = mutableListOf<OtaRelease>()
@@ -127,27 +141,53 @@ object NetworkUtils {
                 }
             } else if (trimmed.startsWith("{")) {
                 val root = JSONObject(trimmed)
-                if (root.has("response")) {
-                    val responseArray = root.getJSONArray("response")
-                    for (i in 0 until responseArray.length()) {
-                        val obj = responseArray.getJSONObject(i)
-                        parseSingleReleaseObject(obj, sourceUrl)?.let { releases.add(it) }
+
+                // 1. Check for channel-specific nested objects
+                val channelKeys = listOf(
+                    "stable" to "Stable",
+                    "early_access" to "Early Access",
+                    "earlyAccess" to "Early Access",
+                    "closed_beta" to "Closed Beta",
+                    "closedBeta" to "Closed Beta",
+                    "beta" to "Early Access",
+                    "alpha" to "Closed Beta"
+                )
+                var parsedAnyChannel = false
+                for ((key, channelName) in channelKeys) {
+                    if (root.has(key)) {
+                        val channelObj = root.optJSONObject(key)
+                        if (channelObj != null) {
+                            parseSingleReleaseObject(channelObj, sourceUrl, defaultChannel = channelName)?.let {
+                                releases.add(it)
+                                parsedAnyChannel = true
+                            }
+                        }
                     }
-                } else if (root.has("updates")) {
-                    val updatesArray = root.getJSONArray("updates")
-                    for (i in 0 until updatesArray.length()) {
-                        val obj = updatesArray.getJSONObject(i)
-                        parseSingleReleaseObject(obj, sourceUrl)?.let { releases.add(it) }
+                }
+
+                if (!parsedAnyChannel) {
+                    if (root.has("response")) {
+                        val responseArray = root.getJSONArray("response")
+                        for (i in 0 until responseArray.length()) {
+                            val obj = responseArray.getJSONObject(i)
+                            parseSingleReleaseObject(obj, sourceUrl)?.let { releases.add(it) }
+                        }
+                    } else if (root.has("updates")) {
+                        val updatesArray = root.getJSONArray("updates")
+                        for (i in 0 until updatesArray.length()) {
+                            val obj = updatesArray.getJSONObject(i)
+                            parseSingleReleaseObject(obj, sourceUrl)?.let { releases.add(it) }
+                        }
+                    } else if (root.has("releases")) {
+                        val releasesArray = root.getJSONArray("releases")
+                        for (i in 0 until releasesArray.length()) {
+                            val obj = releasesArray.getJSONObject(i)
+                            parseSingleReleaseObject(obj, sourceUrl)?.let { releases.add(it) }
+                        }
+                    } else {
+                        // Single release object at root
+                        parseSingleReleaseObject(root, sourceUrl)?.let { releases.add(it) }
                     }
-                } else if (root.has("releases")) {
-                    val releasesArray = root.getJSONArray("releases")
-                    for (i in 0 until releasesArray.length()) {
-                        val obj = releasesArray.getJSONObject(i)
-                        parseSingleReleaseObject(obj, sourceUrl)?.let { releases.add(it) }
-                    }
-                } else {
-                    // Single release object at root
-                    parseSingleReleaseObject(root, sourceUrl)?.let { releases.add(it) }
                 }
             }
         } catch (e: Exception) {
@@ -156,7 +196,11 @@ object NetworkUtils {
         return releases
     }
 
-    private fun parseSingleReleaseObject(obj: JSONObject, sourceUrl: String): OtaRelease? {
+    private fun parseSingleReleaseObject(
+        obj: JSONObject,
+        sourceUrl: String,
+        defaultChannel: String = "Stable"
+    ): OtaRelease? {
         return try {
             val versionName = when {
                 obj.has("version_name") -> obj.optString("version_name")
@@ -190,7 +234,7 @@ object NetworkUtils {
 
             val releaseChannel = obj.optString(
                 "release_channel",
-                obj.optString("channel", if (obj.optString("romtype") == "beta") "Beta" else "Official")
+                obj.optString("channel", if (obj.optString("romtype") == "beta") "Beta" else defaultChannel)
             )
 
             val releaseType = obj.optString("release_type", obj.optString("type", "Full OTA Package"))

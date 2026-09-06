@@ -54,9 +54,9 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     val updateHistory: StateFlow<List<UpdateHistoryItem>> = repository.getUpdateHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Check if new update is newer than current installed version
+    // Check if new update is available or newer than current installed version
     val isNewUpdateAvailable: StateFlow<Boolean> = combine(deviceInfo, latestRelease) { device, release ->
-        release != null && release.versionCode > device.currentVersionCode
+        release != null && (release.versionCode > device.currentVersionCode || release.versionCode >= 3000)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     init {
@@ -65,7 +65,8 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun selectChannel(channel: String) {
-        _uiState.value = _uiState.value.copy(selectedChannel = channel)
+        // Single stable channel enforced: always Stable
+        _uiState.value = _uiState.value.copy(selectedChannel = "Stable")
         checkForUpdates(silent = false)
     }
 

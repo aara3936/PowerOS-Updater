@@ -41,9 +41,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 import com.example.ui.theme.GlassEmerald
 import com.example.ui.theme.GlassPrimary
 import com.example.ui.theme.GlassSecondary
+import com.example.ui.theme.LiquidGlassFill
+import com.example.ui.theme.LiquidGlassFillElevated
+import com.example.ui.theme.LiquidGlassStrokeBottom
+import com.example.ui.theme.LiquidGlassStrokeTop
 import com.example.ui.theme.NaturalLightTextMuted
 import com.example.ui.theme.NaturalLightTextPrimary
 import com.example.ui.theme.NaturalLightTextSecondary
@@ -153,7 +164,9 @@ fun StatusBadge(
 
 /**
  * True Frosted Liquid Glassmorphism Container with 28dp Global Rounded Styling.
- * Uses translucent white fills, fine 1px light border stroke, and soft drop-shadow.
+ * Container Background: Frosted translucent fill `#1AFFFFFF` (10% pure white opacity) layered over the night-field wallpaper.
+ * Stroke Border: Crisp 1.5dp stroke gradient using `#4DFFFFFF` fading to `#10FFFFFF` to mimic real light refraction.
+ * Geometry: Strict 28dp rounded corners.
  */
 @Composable
 fun LiquidGlassCard(
@@ -161,12 +174,12 @@ fun LiquidGlassCard(
     shape: Shape = RoundedCornerShape(28.dp),
     accentGradient: Brush? = null,
     borderStroke: BorderStroke? = BorderStroke(
-        1.dp,
+        1.5.dp,
         Brush.verticalGradient(
             listOf(
-                Color.White.copy(alpha = 0.85f),
-                Color.White.copy(alpha = 0.45f),
-                Color(0x33CBD5E1)
+                LiquidGlassStrokeTop,      // #4DFFFFFF (30% pure white refraction)
+                Color(0x26FFFFFF),
+                LiquidGlassStrokeBottom    // #10FFFFFF (light fade)
             )
         )
     ),
@@ -176,10 +189,10 @@ fun LiquidGlassCard(
     Surface(
         modifier = modifier
             .shadow(
-                elevation = 10.dp,
+                elevation = 12.dp,
                 shape = shape,
-                ambientColor = Color(0x1A0F172A),
-                spotColor = Color(0x1F0284C7)
+                ambientColor = Color(0x66000000),
+                spotColor = Color(0x3338BDF8)
             ),
         shape = shape,
         color = Color.Transparent,
@@ -190,9 +203,9 @@ fun LiquidGlassCard(
                 .background(
                     accentGradient ?: Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.78f),
-                            Color.White.copy(alpha = 0.60f),
-                            Color(0xE6F8FAFC)
+                            LiquidGlassFillElevated, // 15% white top glow
+                            LiquidGlassFill,         // 10% white frosted fill (#1AFFFFFF)
+                            Color(0x0F0F172A)        // Subtle night-field blend
                         )
                     )
                 )
@@ -300,7 +313,8 @@ fun GlassChannelSegmentedBar(
 }
 
 /**
- * Frosted Glass Action Button with 28dp rounded corners.
+ * Frosted Glass Action Button with 28dp rounded corners and Spring Physics micro-bounce on touch.
+ * Tuned with SpringForce.STIFFNESS_LOW and SpringForce.DAMPING_RATIO_LOW_BOUNCY for high refresh rates.
  */
 @Composable
 fun GlassButton(
@@ -311,21 +325,49 @@ fun GlassButton(
     leadingIcon: (@Composable () -> Unit)? = null,
     enabled: Boolean = true
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "glass_button_scale"
+    )
+
     Button(
         onClick = onClick,
         enabled = enabled,
+        interactionSource = interactionSource,
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .shadow(
-                elevation = 6.dp,
+                elevation = if (isPressed) 2.dp else 8.dp,
                 shape = RoundedCornerShape(28.dp),
-                spotColor = color.copy(alpha = 0.45f)
+                spotColor = color.copy(alpha = 0.5f),
+                ambientColor = Color(0x40000000)
+            )
+            .border(
+                1.5.dp,
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.65f),
+                        LiquidGlassStrokeBottom
+                    )
+                ),
+                RoundedCornerShape(28.dp)
             ),
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = color,
             contentColor = Color.White,
-            disabledContainerColor = Color(0xFFCBD5E1),
-            disabledContentColor = Color(0xFF64748B)
+            disabledContainerColor = Color(0xFF334155),
+            disabledContentColor = Color(0xFF94A3B8)
         ),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
     ) {
