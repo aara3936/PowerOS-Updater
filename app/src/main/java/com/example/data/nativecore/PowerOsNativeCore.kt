@@ -40,6 +40,10 @@ object PowerOsNativeCore {
     /**
      * High-performance SHA-256 Checksum verification
      */
+    fun verifyChecksum(filePath: String, expectedSha256: String): Boolean {
+        return verifySha256(File(filePath), expectedSha256)
+    }
+
     fun verifySha256(file: File, expectedSha256: String): Boolean {
         if (!file.exists() || !file.isFile) return false
         if (expectedSha256.isBlank()) return true // No checksum provided
@@ -70,6 +74,26 @@ object PowerOsNativeCore {
     }
 
     /**
+     * Validates JSON OTA Payload schema
+     */
+    fun validatePayload(jsonString: String): Boolean {
+        if (jsonString.isBlank()) return false
+        val containsVersion = jsonString.contains("version_name") || jsonString.contains("versionName") || jsonString.contains("version")
+        val containsUrlOrRel = jsonString.contains("download_url") || jsonString.contains("zipUrl") || jsonString.contains("releases") || jsonString.contains("stable")
+        return containsVersion && containsUrlOrRel
+    }
+
+    private val DEFAULT_STATE_KEY = "PowerOS-Core-Hardware-Bound-Secret-2026".toByteArray(Charsets.UTF_8)
+
+    fun encryptState(plainText: String): String {
+        return encryptAesGcm(plainText, DEFAULT_STATE_KEY)
+    }
+
+    fun decryptState(cipherText: String): String {
+        return decryptAesGcm(cipherText, DEFAULT_STATE_KEY)
+    }
+
+    /**
      * AES-256-GCM Encryption
      */
     fun encryptAesGcm(plainText: String, keyBytes: ByteArray): String {
@@ -89,7 +113,7 @@ object PowerOsNativeCore {
             val combined = ByteArray(iv.size + cipherText.size)
             System.arraycopy(iv, 0, combined, 0, iv.size)
             System.arraycopy(cipherText, 0, combined, iv.size, cipherText.size)
-            Base64.encodeToString(combined, Base64.NO_WRAP)
+            encodeBase64(combined)
         } catch (e: Exception) {
             plainText
         }
@@ -100,7 +124,7 @@ object PowerOsNativeCore {
      */
     fun decryptAesGcm(encodedCipherText: String, keyBytes: ByteArray): String {
         return try {
-            val combined = Base64.decode(encodedCipherText, Base64.NO_WRAP)
+            val combined = decodeBase64(encodedCipherText)
             if (combined.size < 12) return ""
             val iv = ByteArray(12)
             System.arraycopy(combined, 0, iv, 0, 12)
@@ -119,6 +143,22 @@ object PowerOsNativeCore {
             String(plainBytes, Charsets.UTF_8)
         } catch (e: Exception) {
             ""
+        }
+    }
+
+    private fun encodeBase64(data: ByteArray): String {
+        return try {
+            java.util.Base64.getEncoder().encodeToString(data)
+        } catch (_: Throwable) {
+            android.util.Base64.encodeToString(data, android.util.Base64.NO_WRAP)
+        }
+    }
+
+    private fun decodeBase64(str: String): ByteArray {
+        return try {
+            java.util.Base64.getDecoder().decode(str)
+        } catch (_: Throwable) {
+            android.util.Base64.decode(str, android.util.Base64.NO_WRAP)
         }
     }
 

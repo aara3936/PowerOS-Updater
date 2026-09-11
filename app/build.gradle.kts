@@ -13,8 +13,8 @@ android {
         applicationId = "com.aistudio.powerosupdater.kxupzq"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 200
+        versionName = "2.0.0-BETA"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -66,4 +66,6 @@ dependencies {
     // Networking & Security
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    testImplementation("junit:junit:4.13.2")
 }

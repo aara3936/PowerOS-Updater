@@ -1,9 +1,11 @@
 package com.example.data.repository
 
 import android.content.Context
+import android.net.Uri
 import com.example.data.local.AppDatabase
 import com.example.data.model.*
 import com.example.data.network.NetworkUtils
+import com.example.data.network.OtaDownloadService
 import com.example.telemetry.AiTelemetryEngine
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -17,13 +19,11 @@ class OtaRepository(private val context: Context) {
     private val _deviceInfo = MutableStateFlow(SystemDeviceInfo())
     val deviceInfo: StateFlow<SystemDeviceInfo> = _deviceInfo.asStateFlow()
 
-    private val _downloadProgress = MutableStateFlow(DownloadProgress())
-    val downloadProgress: StateFlow<DownloadProgress> = _downloadProgress.asStateFlow()
-
     private val _selectedChannel = MutableStateFlow("Stable")
     val selectedChannel: StateFlow<String> = _selectedChannel.asStateFlow()
 
-    private var downloadJob: Job? = null
+    // Real-time foreground service download progress merged with local updates
+    val downloadProgress: StateFlow<DownloadProgress> = OtaDownloadService.serviceProgress
 
     val allReleases: Flow<List<OtaRelease>> = releaseDao.getAllReleases()
     val updateHistory: Flow<List<UpdateHistoryItem>> = historyDao.getAllHistory()
@@ -34,51 +34,38 @@ class OtaRepository(private val context: Context) {
 
     suspend fun checkForUpdates(rawJsonUrl: String = OtaConstants.DEFAULT_RAW_JSON_URL): Result<List<OtaRelease>> = withContext(Dispatchers.IO) {
         try {
-            _downloadProgress.update { it.copy(status = DownloadStatus.CHECKING, currentStep = "Querying Power OS release server...") }
             val result = NetworkUtils.fetchOtaManifest(rawJsonUrl)
             if (result.isSuccess) {
                 val releases = result.getOrNull() ?: emptyList()
                 if (releases.isNotEmpty()) {
                     releaseDao.insertReleases(releases)
                 }
-                _downloadProgress.update { it.copy(status = DownloadStatus.AVAILABLE, currentStep = "Found ${releases.size} available update package(s).") }
                 Result.success(releases)
             } else {
                 val fallback = AiTelemetryEngine.getSafeFallbackRelease()
                 releaseDao.insertRelease(fallback)
-                _downloadProgress.update { it.copy(status = DownloadStatus.AVAILABLE, currentStep = "Cached release available.") }
                 Result.success(listOf(fallback))
             }
         } catch (e: Exception) {
             AiTelemetryEngine.logCrash(e)
-            _downloadProgress.update { it.copy(status = DownloadStatus.FAILED, errorMessage = e.localizedMessage) }
             Result.failure(e)
         }
     }
 
     fun startDownload(release: OtaRelease, scope: CoroutineScope) {
-        downloadJob?.cancel()
-        val targetFile = NetworkUtils.resolveTargetRomFile(release.targetLocalPath, context)
-
-        downloadJob = scope.launch {
-            NetworkUtils.downloadRomStream(release, targetFile).collect { progress ->
-                _downloadProgress.value = progress
-            }
-        }
+        OtaDownloadService.startDownload(context, release)
     }
 
     fun pauseDownload() {
-        downloadJob?.cancel()
-        _downloadProgress.update { it.copy(status = DownloadStatus.PAUSED, currentStep = "Download paused by user.") }
+        OtaDownloadService.pauseDownload(context)
     }
 
     fun resumeDownload(release: OtaRelease, scope: CoroutineScope) {
-        startDownload(release, scope)
+        OtaDownloadService.resumeDownload(context, release)
     }
 
     fun cancelDownload() {
-        downloadJob?.cancel()
-        _downloadProgress.value = DownloadProgress(status = DownloadStatus.IDLE)
+        OtaDownloadService.cancelDownload(context)
     }
 
     suspend fun publishRelease(release: OtaRelease) = withContext(Dispatchers.IO) {
@@ -87,6 +74,35 @@ class OtaRepository(private val context: Context) {
 
     suspend fun deleteRelease(release: OtaRelease) = withContext(Dispatchers.IO) {
         releaseDao.deleteRelease(release)
+    }
+
+    suspend fun clearAllReleases() = withContext(Dispatchers.IO) {
+        releaseDao.clearAllReleases()
+    }
+
+    suspend fun stageLocalPackage(fileName: String, uriString: String, fileSize: Long = 18_874_368L): OtaRelease = withContext(Dispatchers.IO) {
+        val cleanName = fileName.removeSuffix(".zip").removeSuffix(".apk")
+        val stagedRelease = OtaRelease(
+            id = "staged_local_${System.currentTimeMillis()}",
+            deviceModel = OtaConstants.DEVICE_MODEL_NAME,
+            deviceCodename = OtaConstants.DEVICE_CODENAME,
+            versionName = "Local-$cleanName",
+            versionCode = 9999,
+            buildNumber = "LOCAL-STAGE-$cleanName",
+            releaseChannel = _selectedChannel.value,
+            releaseType = "Local Sideload",
+            packageSizeBytes = fileSize,
+            downloadUrl = uriString,
+            checksumSha256 = "",
+            androidVersion = "Android 14",
+            securityPatch = "2026-09-01",
+            changelog = "Locally staged package: $fileName\n• User-selected sideload update\n• Direct partition staging enabled",
+            releaseDate = System.currentTimeMillis(),
+            sourceUrl = "local://$fileName",
+            targetLocalPath = uriString
+        )
+        releaseDao.insertRelease(stagedRelease)
+        stagedRelease
     }
 
     fun updateSelectedChannel(channel: String) {
@@ -114,7 +130,7 @@ class OtaRepository(private val context: Context) {
         onProgress: (Float, String) -> Unit,
         onComplete: (Boolean) -> Unit
     ) = withContext(Dispatchers.IO) {
-        _downloadProgress.update { it.copy(status = DownloadStatus.INSTALLING) }
+        OtaDownloadService.updateProgress { it.copy(status = DownloadStatus.INSTALLING) }
 
         val steps = listOf(
             0.15f to "Backing up boot and recovery bootloader partitions...",
@@ -127,7 +143,7 @@ class OtaRepository(private val context: Context) {
         for ((progress, stepText) in steps) {
             delay(1200)
             onProgress(progress, stepText)
-            _downloadProgress.update { it.copy(installProgress = progress, currentStep = stepText) }
+            OtaDownloadService.updateProgress { it.copy(installProgress = progress, currentStep = stepText) }
         }
 
         // Record to history
@@ -151,7 +167,7 @@ class OtaRepository(private val context: Context) {
             )
         }
 
-        _downloadProgress.update {
+        OtaDownloadService.updateProgress {
             it.copy(
                 status = DownloadStatus.SUCCESS,
                 currentStep = "Installation complete! Reboot required to finish update."

@@ -3,12 +3,21 @@ package com.example.ui.portal
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -29,31 +39,52 @@ import com.example.telemetry.AiTelemetryEngine
 import com.example.ui.components.*
 import com.example.ui.security.DeveloperAuthManager
 import com.example.ui.theme.*
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 @Composable
 fun DeveloperPortalScreen(
     onExitPortal: () -> Unit,
     onPublishRelease: (OtaRelease) -> Unit,
+    onPurgeReleases: () -> Unit,
+    onStageLocalFile: (String, String, Long) -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
     val context = LocalContext.current
     val view = LocalView.current
-    val coroutineScope = rememberCoroutineScope()
 
-    var targetVersion by remember { mutableStateOf("3.7") }
-    var versionCodeText by remember { mutableStateOf("3790") }
-    var releaseDateText by remember { mutableStateOf("2026-09-03") }
-    var packageSizeText by remember { mutableStateOf("15 MB") }
+    var targetVersion by remember { mutableStateOf("2.0.0-BETA") }
+    var versionCodeText by remember { mutableStateOf("200") }
+    var releaseDateText by remember { mutableStateOf("2026-09-11") }
+    var packageSizeText by remember { mutableStateOf("18 MB") }
     var downloadZipUrl by remember { mutableStateOf("https://github.com/aara3936/Oppo-A6X-OTA/releases/download/v3.7.90/PowerOS_v3.7.90_OppoA6X.zip") }
     var changelogText by remember {
-        mutableStateOf("Power OS V3.7 Stable Release:\n• Full transition to Liquid Glass UI architecture.\n• Improved CPU & GPU scheduling for Oppo A6X.\n• Enhanced system stability and adaptive smooth refresh rate.")
+        mutableStateOf("Power OS V2.0-BETA Release:\n• Liquid Glass UI overhaul with spring physics.\n• Real foreground download manager with resume support.\n• Native SHA-256 and AES-256 GCM security core.\n• Sideload local package staging enabled.")
     }
     var selectedChannel by remember { mutableStateOf("Stable") }
 
     val recentLogs = remember { mutableStateOf(AiTelemetryEngine.getRecentEvents()) }
+
+    // System File Picker for local ZIP / APK staging
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            var fileName = "local_rom.zip"
+            var fileSize = 18_874_368L
+            try {
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (cursor.moveToFirst()) {
+                        if (nameIndex != -1) fileName = cursor.getString(nameIndex)
+                        if (sizeIndex != -1) fileSize = cursor.getLong(sizeIndex)
+                    }
+                }
+            } catch (_: Exception) {}
+
+            onStageLocalFile(fileName, uri.toString(), fileSize)
+            onShowSnackbar("Staged '$fileName' ($fileSize bytes) directly to local OTA matrix!")
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -93,7 +124,57 @@ fun DeveloperPortalScreen(
             }
         }
 
-        // Section 1: OTA Release Deployment Matrix
+        // Section 1: Local ZIP / APK Staging
+        item {
+            LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.FolderZip, contentDescription = null, tint = GlassCyanAccent)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Stage Local ROM / APK File", style = Typography.titleMedium, color = LiquidGlassTextPrimary)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Select a local .zip or .apk update package directly from device storage to test installation without uploading to a server.",
+                    style = Typography.bodyMedium,
+                    color = LiquidGlassTextMuted
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LiquidGlassButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            filePickerLauncher.launch("*/*")
+                        },
+                        modifier = Modifier.weight(1f),
+                        isPrimary = true
+                    ) {
+                        Icon(Icons.Default.FileOpen, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Pick Local ROM File", style = Typography.labelMedium)
+                    }
+
+                    LiquidGlassButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            onPurgeReleases()
+                        },
+                        modifier = Modifier.weight(1f),
+                        isPrimary = false,
+                        containerColor = Color(0x33FF3B30),
+                        contentColor = GlassRose
+                    ) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Purge Staged", style = Typography.labelMedium)
+                    }
+                }
+            }
+        }
+
+        // Section 2: OTA Release Deployment Matrix
         item {
             LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -109,7 +190,7 @@ fun DeveloperPortalScreen(
                         value = targetVersion,
                         onValueChange = { targetVersion = it },
                         label = "Version String",
-                        placeholder = "e.g. 3.7",
+                        placeholder = "e.g. 2.0.0-BETA",
                         modifier = Modifier.weight(1f)
                     )
 
@@ -117,7 +198,7 @@ fun DeveloperPortalScreen(
                         value = versionCodeText,
                         onValueChange = { versionCodeText = it },
                         label = "Version Code",
-                        placeholder = "e.g. 3790",
+                        placeholder = "e.g. 200",
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -129,7 +210,7 @@ fun DeveloperPortalScreen(
                         value = releaseDateText,
                         onValueChange = { releaseDateText = it },
                         label = "Release Date",
-                        placeholder = "2026-09-03",
+                        placeholder = "2026-09-11",
                         modifier = Modifier.weight(1f)
                     )
 
@@ -137,7 +218,7 @@ fun DeveloperPortalScreen(
                         value = packageSizeText,
                         onValueChange = { packageSizeText = it },
                         label = "Package Size",
-                        placeholder = "1.8 GB or 15 MB",
+                        placeholder = "1.8 GB or 18 MB",
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -189,7 +270,7 @@ fun DeveloperPortalScreen(
                 LiquidGlassButton(
                     onClick = {
                         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                        val code = versionCodeText.toIntOrNull() ?: 3790
+                        val code = versionCodeText.toIntOrNull() ?: 200
                         val release = OtaRelease(
                             id = "dev_release_${selectedChannel.lowercase()}_$code",
                             deviceModel = OtaConstants.DEVICE_MODEL_NAME,
@@ -199,7 +280,7 @@ fun DeveloperPortalScreen(
                             buildNumber = "POS-$targetVersion-${selectedChannel.uppercase()}-OppoA6X",
                             releaseChannel = selectedChannel,
                             releaseType = "Full",
-                            packageSizeBytes = 15728640L,
+                            packageSizeBytes = 18874368L,
                             downloadUrl = downloadZipUrl,
                             checksumSha256 = "",
                             androidVersion = "Android 14",
@@ -223,11 +304,10 @@ fun DeveloperPortalScreen(
             }
         }
 
-        // Section 2: Custom Credential Management
+        // Section 3: Custom Credential Management
         item {
             var newUsername by remember { mutableStateOf("") }
             var newPassword by remember { mutableStateOf("") }
-            var showCredDialog by remember { mutableStateOf(false) }
 
             LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -297,7 +377,7 @@ fun DeveloperPortalScreen(
             }
         }
 
-        // Section 3: AI Telemetry & Diagnostic Exporter
+        // Section 4: AI Telemetry & Diagnostic Exporter
         item {
             LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -328,7 +408,6 @@ fun DeveloperPortalScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // One-Click AI Diagnostic Prompt Exporter Button
                 LiquidGlassButton(
                     onClick = {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)

@@ -68,6 +68,8 @@ class MainActivity : ComponentActivity() {
                                 DeveloperPortalScreen(
                                     onExitPortal = { viewModel.exitDeveloperPortal() },
                                     onPublishRelease = { release -> viewModel.publishCustomRelease(release) },
+                                    onPurgeReleases = { viewModel.purgeStagedReleases() },
+                                    onStageLocalFile = { name, uri, size -> viewModel.stageLocalFile(name, uri, size) },
                                     onShowSnackbar = { msg -> viewModel.showSnackbar(msg) }
                                 )
                             } else {

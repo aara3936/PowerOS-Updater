@@ -121,6 +121,28 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
     fun publishCustomRelease(release: OtaRelease) {
         viewModelScope.launch {
             repository.publishRelease(release)
+            showSnackbar("OTA Package '${release.versionName}' published to local database.")
+        }
+    }
+
+    fun purgeStagedReleases() {
+        viewModelScope.launch {
+            repository.clearAllReleases()
+            showSnackbar("All staged OTA releases purged from database.")
+        }
+    }
+
+    fun stageLocalFile(fileName: String, uriString: String, fileSize: Long) {
+        viewModelScope.launch {
+            val staged = repository.stageLocalPackage(fileName, uriString, fileSize)
+            showSnackbar("Staged '${staged.versionName}' for local installation.")
+        }
+    }
+
+    fun deleteRelease(release: OtaRelease) {
+        viewModelScope.launch {
+            repository.deleteRelease(release)
+            showSnackbar("Deleted release '${release.versionName}'.")
         }
     }
 

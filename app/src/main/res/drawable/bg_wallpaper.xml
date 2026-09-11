@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="412dp"
+    android:height="915dp"
+    android:viewportWidth="412"
+    android:viewportHeight="915">
+
+    <!-- Dark Ambient Cosmic Canvas -->
+    <path
+        android:pathData="M0,0h412v915h-412z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="412"
+                android:endY="915"
+                android:startColor="#030712"
+                android:endColor="#0B132B" />
+        </aapt:attr>
+    </path>
+
+    <!-- Deep Glowing Cyan Glass Sphere 1 -->
+    <path
+        android:pathData="M206,200 m-180,0 a180,180 0 1,0 360,0 a180,180 0 1,0 -360,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="206"
+                android:centerY="200"
+                android:gradientRadius="180"
+                android:startColor="#1E00E5FF"
+                android:endColor="#00000000" />
+        </aapt:attr>
+    </path>
+
+    <!-- Electric Indigo Glow Bottom -->
+    <path
+        android:pathData="M350,750 m-220,0 a220,220 0 1,0 440,0 a220,220 0 1,0 -440,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="350"
+                android:centerY="750"
+                android:gradientRadius="220"
+                android:startColor="#1A3B82F6"
+                android:endColor="#00000000" />
+        </aapt:attr>
+    </path>
+</vector>

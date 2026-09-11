@@ -1,5 +1,5 @@
 // Power OS Native Core (Rust NDK JNI Bindings)
-// Provides high-performance cryptographic SHA-256 verification,
+// Provides cryptographic SHA-256 verification,
 // AES-256-GCM encryption/decryption, and fast JSON parsing.
 
 use jni::objects::{JClass, JString};
@@ -57,4 +57,28 @@ pub extern "system" fn Java_com_example_data_nativecore_PowerOsNativeCore_native
     _class: JClass,
 ) -> jboolean {
     1
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_example_data_nativecore_PowerOsNativeCore_nativeValidatePayload(
+    mut env: JNIEnv,
+    _class: JClass,
+    json_payload: JString,
+) -> jstring {
+    let json_str: String = match env.get_string(&json_payload) {
+        Ok(s) => s.into(),
+        Err(_) => "{}".to_string(),
+    };
+
+    let valid = json_str.contains("version") || json_str.contains("download_url") || json_str.contains("zipUrl");
+    let response = if valid {
+        "{\"status\":\"valid\",\"engine\":\"Rust NDK\"}"
+    } else {
+        "{\"status\":\"invalid\",\"reason\":\"missing_fields\"}"
+    };
+
+    match env.new_string(response) {
+        Ok(js) => js.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
 }

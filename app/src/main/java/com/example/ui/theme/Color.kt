@@ -10,7 +10,7 @@ val NightFieldSurface = Color(0xFF0F172A)
 // Liquid Glass Design Tokens (Section 1.2: #121827 with 65% opacity)
 val LiquidGlassFill = Color(0xA6121827) // 65% frosted dark glass surface #121827
 val LiquidGlassFillElevated = Color(0xD9121827) // 85% elevated glass surface
-val LiquidGlassFillDark = Color(0xB3000000) // 70% dim backdrop overlay #B3000000
+val LiquidGlassFillDark = Color(0xCC000000) // 80% dim backdrop overlay #CC000000
 
 // Refraction Stroke Gradients (1.5dp frosted border stroke #ffffff with 15% opacity)
 val LiquidGlassStrokeTop = Color(0x26FFFFFF) // 15% white frosted border stroke

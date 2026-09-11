@@ -44,7 +44,7 @@ data class OtaRelease(
     val rolloutPercentage: Int = 100,
     val sourceUrl: String = "",
     val targetLocalPath: String = OtaConstants.DEFAULT_TARGET_FILE_PATH
-)
+) : java.io.Serializable
 
 @Entity(tableName = "update_history")
 data class UpdateHistoryItem(
