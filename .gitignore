@@ -1,0 +1,16 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/app/build
+/.build-outputs
+debug.keystore
+debug.keystore.base64
+captures
+.externalNativeBuild
+.cxx
+
+# Ensure OTA_Updater.apk is included
+!OTA_Updater.apk

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Power OS</string>
+    <string name="oppo_device_model">Oppo A6X</string>
+    <string name="ota_server_desc">Live GitHub OTA repository for Oppo A6X</string>
+    <string name="ota_server_name">Oppo A6X GitHub OTA Portal</string>
+    <string name="raw_json_url">https://raw.githubusercontent.com/aara3936/Oppo-A6X-OTA/main/updater.json</string>
+    <string name="system_up_to_date">Your Oppo A6X is up to date</string>
+    <string name="target_rom_path">/sdcard/Download/OTA/rom.zip</string>
+    <string name="update_available">New update available for Oppo A6X</string>
+    <string name="download_now">Download to /sdcard/Download/OTA/rom.zip</string>
+    <string name="install_update">Reboot &amp; Apply Update</string>
+    <string name="publish_release">Publish OTA Release</string>
+    <string name="pause_download">Pause</string>
+    <string name="resume_download">Resume</string>
+</resources>
