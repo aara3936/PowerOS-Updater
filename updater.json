@@ -1,0 +1,18 @@
+{
+  "stable": {
+    "version": "3.A.7.0.102GL",
+    "versionCode": 3790,
+    "releaseDate": "2026-09-03",
+    "size": "15 MB",
+    "zipUrl": "https://github.com/aara3936/Oppo-A6X-OTA/releases/download/v3.7.90/PowerOS_v3.7.90_OppoA6X.zip",
+    "changelog": "Power OS V3.7 Stable Release:\n• Full transition to Liquid Glass UI architecture.\n• Improved CPU & GPU scheduling for Oppo A6X.\n• Enhanced system stability and adaptive smooth refresh rate."
+  },
+  "beta": {
+    "version": "3.B.8.0.012PR",
+    "versionCode": 3812,
+    "releaseDate": "2026-09-10",
+    "size": "18 MB",
+    "zipUrl": "https://github.com/aara3936/Oppo-A6X-OTA/releases/download/v3.8.12/PowerOS_v3.8.12_OppoA6X_Beta.zip",
+    "changelog": "Power OS V3.8 Beta Preview:\n• Experimental Vulkan 1.3 shader pipeline.\n• Advanced Liquid Glass dynamic refraction refactor."
+  }
+}

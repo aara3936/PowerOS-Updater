@@ -1,4 +1,8 @@
 {
+  "name": "Power OS",
+  "description": "Power OS OTA Updater v3.0 with Liquid Glass UI, secure developer portal, self-healing telemetry, and high-performance native core.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"],
   "stable": {
     "version": "3.A.7.0.102GL",
     "versionCode": 3790,
