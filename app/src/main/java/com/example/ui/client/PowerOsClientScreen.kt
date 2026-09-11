@@ -275,6 +275,7 @@ fun PowerOsClientScreen(
                 // Active Download / Install Progress Bar
                 AnimatedVisibility(
                     visible = downloadProgress.status == DownloadStatus.DOWNLOADING ||
+                            downloadProgress.status == DownloadStatus.PAUSED ||
                             downloadProgress.status == DownloadStatus.VERIFYING ||
                             downloadProgress.status == DownloadStatus.INSTALLING,
                     enter = fadeIn(),
@@ -283,12 +284,14 @@ fun PowerOsClientScreen(
                     Column(modifier = Modifier.padding(top = 16.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = downloadProgress.currentStep,
                                 style = Typography.labelMedium,
-                                color = GlassCyanAccent
+                                color = GlassCyanAccent,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                             val pct = if (downloadProgress.status == DownloadStatus.INSTALLING) {
                                 (downloadProgress.installProgress * 100).toInt()
@@ -298,7 +301,8 @@ fun PowerOsClientScreen(
                             Text(
                                 text = "$pct%",
                                 style = Typography.labelLarge,
-                                color = LiquidGlassTextPrimary
+                                color = LiquidGlassTextPrimary,
+                                fontWeight = FontWeight.Bold
                             )
                         }
 
@@ -316,9 +320,30 @@ fun PowerOsClientScreen(
                                 .fillMaxWidth()
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
-                            color = GlassCyanAccent,
+                            color = if (downloadProgress.status == DownloadStatus.PAUSED) GlassAmber else GlassCyanAccent,
                             trackColor = Color(0x33FFFFFF)
                         )
+
+                        if (downloadProgress.status == DownloadStatus.DOWNLOADING && downloadProgress.speedBytesPerSec > 0) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val speedMb = downloadProgress.speedBytesPerSec.toFloat() / (1024 * 1024)
+                            val etaText = if (downloadProgress.etaSeconds > 0) "${downloadProgress.etaSeconds}s remaining" else "Calculating..."
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = String.format("%.2f MB/s", speedMb),
+                                    style = Typography.labelSmall,
+                                    color = LiquidGlassTextMuted
+                                )
+                                Text(
+                                    text = "ETA: $etaText",
+                                    style = Typography.labelSmall,
+                                    color = LiquidGlassTextMuted
+                                )
+                            }
+                        }
                     }
                 }
 

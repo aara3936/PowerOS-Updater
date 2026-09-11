@@ -223,7 +223,81 @@ fun DeveloperPortalScreen(
             }
         }
 
-        // Section 2: AI Telemetry & Diagnostic Exporter
+        // Section 2: Custom Credential Management
+        item {
+            var newUsername by remember { mutableStateOf("") }
+            var newPassword by remember { mutableStateOf("") }
+            var showCredDialog by remember { mutableStateOf(false) }
+
+            LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VpnKey, contentDescription = null, tint = GlassCyanAccent)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Developer Credential Management", style = Typography.titleMedium, color = LiquidGlassTextPrimary)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Update master developer credentials securely stored with hardware-backed AES-256 GCM encryption.",
+                    style = Typography.bodyMedium,
+                    color = LiquidGlassTextMuted
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LiquidGlassTextField(
+                        value = newUsername,
+                        onValueChange = { newUsername = it },
+                        label = "New ID",
+                        placeholder = "New Username",
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    LiquidGlassTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = "New Key",
+                        placeholder = "New Password",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LiquidGlassButton(
+                        onClick = {
+                            if (newUsername.isNotBlank() && newPassword.isNotBlank()) {
+                                DeveloperAuthManager.updateCredentials(newUsername, newPassword)
+                                newUsername = ""
+                                newPassword = ""
+                                onShowSnackbar("Developer credentials updated and encrypted successfully.")
+                            } else {
+                                onShowSnackbar("Please enter both a valid Username and Password.")
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        isPrimary = true
+                    ) {
+                        Text("Save Credentials", style = Typography.labelMedium)
+                    }
+
+                    LiquidGlassButton(
+                        onClick = {
+                            DeveloperAuthManager.resetCredentialsToDefault()
+                            onShowSnackbar("Credentials reset to default: abx12 / abx12")
+                        },
+                        modifier = Modifier.weight(1f),
+                        isPrimary = false
+                    ) {
+                        Text("Reset to Default", style = Typography.labelMedium)
+                    }
+                }
+            }
+        }
+
+        // Section 3: AI Telemetry & Diagnostic Exporter
         item {
             LiquidGlassCard(modifier = Modifier.fillMaxWidth()) {
                 Row(

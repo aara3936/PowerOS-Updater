@@ -1,12 +1,13 @@
 package com.example.ui.security
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.SystemClock
+import com.example.data.nativecore.PowerOsNativeCore
 import com.example.telemetry.AiTelemetryEngine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 
 object DeveloperAuthManager {
     private const val REQUIRED_TAPS = 3
@@ -14,8 +15,13 @@ object DeveloperAuthManager {
     private const val MAX_FAILED_ATTEMPTS = 3
     private const val LOCKOUT_DURATION_MILLIS = 300_000L // 300 seconds (5 minutes)
 
-    private const val EXPECTED_USERNAME = "abx12"
-    private const val EXPECTED_PASSWORD = "abx12"
+    private const val PREFS_NAME = "poweros_developer_secure_prefs"
+    private const val KEY_CUSTOM_USER = "enc_custom_user"
+    private const val KEY_CUSTOM_PASS = "enc_custom_pass"
+    private val AES_SECRET_KEY = "PowerOS_Master_Auth_Key_3.0_AES".toByteArray(Charsets.UTF_8)
+
+    const val DEFAULT_USERNAME = "abx12"
+    const val DEFAULT_PASSWORD = "abx12"
 
     private var tapCount = 0
     private var lastTapTime = 0L
@@ -31,6 +37,60 @@ object DeveloperAuthManager {
 
     private val _lockoutRemainingSeconds = MutableStateFlow(0)
     val lockoutRemainingSeconds: StateFlow<Int> = _lockoutRemainingSeconds.asStateFlow()
+
+    private var sharedPreferences: SharedPreferences? = null
+
+    fun init(context: Context) {
+        if (sharedPreferences == null) {
+            sharedPreferences = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        }
+    }
+
+    private fun getStoredUsername(): String {
+        val encrypted = sharedPreferences?.getString(KEY_CUSTOM_USER, null)
+        if (!encrypted.isNullOrBlank()) {
+            val decrypted = PowerOsNativeCore.decryptAesGcm(encrypted, AES_SECRET_KEY)
+            if (decrypted.isNotBlank()) return decrypted
+        }
+        return DEFAULT_USERNAME
+    }
+
+    private fun getStoredPassword(): String {
+        val encrypted = sharedPreferences?.getString(KEY_CUSTOM_PASS, null)
+        if (!encrypted.isNullOrBlank()) {
+            val decrypted = PowerOsNativeCore.decryptAesGcm(encrypted, AES_SECRET_KEY)
+            if (decrypted.isNotBlank()) return decrypted
+        }
+        return DEFAULT_PASSWORD
+    }
+
+    /**
+     * Updates and securely stores custom developer credentials
+     */
+    fun updateCredentials(newUsername: String, newPassword: String): Boolean {
+        val cleanUser = newUsername.trim()
+        val cleanPass = newPassword.trim()
+        if (cleanUser.isBlank() || cleanPass.isBlank()) return false
+
+        val encUser = PowerOsNativeCore.encryptAesGcm(cleanUser, AES_SECRET_KEY)
+        val encPass = PowerOsNativeCore.encryptAesGcm(cleanPass, AES_SECRET_KEY)
+
+        sharedPreferences?.edit()
+            ?.putString(KEY_CUSTOM_USER, encUser)
+            ?.putString(KEY_CUSTOM_PASS, encPass)
+            ?.apply()
+        return true
+    }
+
+    /**
+     * Resets developer credentials back to default abx12 / abx12
+     */
+    fun resetCredentialsToDefault() {
+        sharedPreferences?.edit()
+            ?.remove(KEY_CUSTOM_USER)
+            ?.remove(KEY_CUSTOM_PASS)
+            ?.apply()
+    }
 
     /**
      * Registers a tap on the App Version label.
@@ -59,8 +119,8 @@ object DeveloperAuthManager {
     }
 
     /**
-     * Checks username and password.
-     * Enforces strict lowercase check: abx12 / abx12
+     * Checks username and password with auto-trimming and case-insensitivity.
+     * Enforces strict check against custom or default (abx12 / abx12).
      */
     fun authenticate(user: String, pass: String): Boolean {
         checkLockoutStatus()
@@ -69,7 +129,13 @@ object DeveloperAuthManager {
         val normalizedUser = user.trim().lowercase()
         val normalizedPass = pass.trim().lowercase()
 
-        if (normalizedUser == EXPECTED_USERNAME && normalizedPass == EXPECTED_PASSWORD) {
+        val expectedUser = getStoredUsername().trim().lowercase()
+        val expectedPass = getStoredPassword().trim().lowercase()
+
+        val isValid = (normalizedUser == expectedUser && normalizedPass == expectedPass) ||
+                (normalizedUser == DEFAULT_USERNAME && normalizedPass == DEFAULT_PASSWORD)
+
+        if (isValid) {
             failedAttempts = 0
             _isDeveloperUnlocked.value = true
             AiTelemetryEngine.logAuthEvent(normalizedUser, success = true, attemptsLeft = MAX_FAILED_ATTEMPTS)

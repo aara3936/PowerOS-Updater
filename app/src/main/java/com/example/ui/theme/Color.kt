@@ -4,17 +4,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // Deep Night-Field Canvas
-val NightFieldBackground = Color(0xFF0A0D14)
-val NightFieldSurface = Color(0xFF101522)
+val NightFieldBackground = Color(0xFF030712)
+val NightFieldSurface = Color(0xFF0F172A)
 
-// Liquid Glass Design Tokens
-val LiquidGlassFill = Color(0x1AFFFFFF) // 10% alpha white frosted canvas
-val LiquidGlassFillElevated = Color(0x28FFFFFF) // 16% alpha white elevated canvas
-val LiquidGlassFillDark = Color(0x33000000)
+// Liquid Glass Design Tokens (Section 1.2: #121827 with 65% opacity)
+val LiquidGlassFill = Color(0xA6121827) // 65% frosted dark glass surface #121827
+val LiquidGlassFillElevated = Color(0xD9121827) // 85% elevated glass surface
+val LiquidGlassFillDark = Color(0xB3000000) // 70% dim backdrop overlay #B3000000
 
-// Refraction Stroke Gradients
-val LiquidGlassStrokeTop = Color(0x50FFFFFF) // Top-left highlight
-val LiquidGlassStrokeBottom = Color(0x0DFFFFFF) // Bottom-right shadow
+// Refraction Stroke Gradients (1.5dp frosted border stroke #ffffff with 15% opacity)
+val LiquidGlassStrokeTop = Color(0x26FFFFFF) // 15% white frosted border stroke
+val LiquidGlassStrokeBottom = Color(0x10FFFFFF) // 6% white soft highlight
 val LiquidGlassErrorGlow = Color(0xFFFF5252) // Security lockout / error red glow
 
 // Refraction Stroke Gradient Brush

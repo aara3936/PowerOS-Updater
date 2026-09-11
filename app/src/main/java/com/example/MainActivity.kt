@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        DeveloperAuthManager.init(applicationContext)
 
         // Module 3.3 Session Auto-Purge Security:
         // Automatically revoke developer privileges and lock portal whenever app is paused or stopped.

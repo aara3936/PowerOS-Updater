@@ -63,7 +63,7 @@ fun DeveloperAuthDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0x99000000))
+                .background(LiquidGlassFillDark)
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -215,7 +215,7 @@ fun SecurityLockoutDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0x99000000))
+                .background(LiquidGlassFillDark)
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -325,7 +325,7 @@ fun SettingsDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0x99000000))
+                .background(LiquidGlassFillDark)
                 .padding(20.dp),
             contentAlignment = Alignment.Center
         ) {
