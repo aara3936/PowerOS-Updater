@@ -43,6 +43,7 @@ object DeveloperAuthManager {
     fun init(context: Context) {
         if (sharedPreferences == null) {
             sharedPreferences = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            _isDeveloperUnlocked.value = sharedPreferences?.getBoolean("is_dev_authenticated", false) ?: false
         }
     }
 
@@ -138,6 +139,7 @@ object DeveloperAuthManager {
         if (isValid) {
             failedAttempts = 0
             _isDeveloperUnlocked.value = true
+            sharedPreferences?.edit()?.putBoolean("is_dev_authenticated", true)?.apply()
             AiTelemetryEngine.logAuthEvent(normalizedUser, success = true, attemptsLeft = MAX_FAILED_ATTEMPTS)
             return true
         } else {
@@ -178,6 +180,7 @@ object DeveloperAuthManager {
      */
     fun purgeSession() {
         _isDeveloperUnlocked.value = false
+        sharedPreferences?.edit()?.putBoolean("is_dev_authenticated", false)?.apply()
         tapCount = 0
     }
 }

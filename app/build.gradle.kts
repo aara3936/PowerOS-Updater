@@ -13,8 +13,8 @@ android {
         applicationId = "com.aistudio.powerosupdater.kxupzq"
         minSdk = 24
         targetSdk = 36
-        versionCode = 200
-        versionName = "2.0.0-BETA"
+        versionCode = 210
+        versionName = "2.1.0-BETA"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

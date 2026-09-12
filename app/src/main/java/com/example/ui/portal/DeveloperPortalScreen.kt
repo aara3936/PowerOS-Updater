@@ -1,4 +1,5 @@
 package com.example.ui.portal
+import androidx.compose.ui.text.style.TextAlign
 
 import android.content.ClipData
 import android.content.ClipboardManager

@@ -41,8 +41,8 @@ val LiquidGlassStrokeWidth: Dp = 1.5.dp
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
-    backgroundColor: Color = LiquidGlassFill,
-    borderBrush: Brush = LiquidGlassBorderBrush,
+    backgroundColor: Color = if (androidx.compose.foundation.isSystemInDarkTheme()) LiquidGlassFill else LiquidGlassFillLight,
+    borderBrush: Brush = if (androidx.compose.foundation.isSystemInDarkTheme()) Brush.linearGradient(listOf(LiquidGlassStrokeTop, LiquidGlassStrokeBottom)) else Brush.linearGradient(listOf(LiquidGlassStrokeTopLight, LiquidGlassStrokeBottomLight)),
     shape: RoundedCornerShape = LiquidGlassShape,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -66,9 +66,9 @@ fun LiquidGlassButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isPrimary: Boolean = true,
-    containerColor: Color = if (isPrimary) GlassCyanAccent else LiquidGlassFillElevated,
-    contentColor: Color = if (isPrimary) PowerOnPrimary else LiquidGlassTextPrimary,
-    borderBrush: Brush = if (isPrimary) Brush.linearGradient(listOf(GlassCyanAccent, GlassCyanDark)) else LiquidGlassBorderBrush,
+    containerColor: Color = if (isPrimary) GlassCyanAccent else if (androidx.compose.foundation.isSystemInDarkTheme()) LiquidGlassFillElevated else LiquidGlassFillElevatedLight,
+    contentColor: Color = if (isPrimary) PowerOnPrimary else if (androidx.compose.foundation.isSystemInDarkTheme()) LiquidGlassTextPrimary else LiquidGlassTextPrimaryLight,
+    borderBrush: Brush = if (isPrimary) Brush.linearGradient(listOf(GlassCyanAccent, GlassCyanDark)) else if (androidx.compose.foundation.isSystemInDarkTheme()) Brush.linearGradient(listOf(LiquidGlassStrokeTop, LiquidGlassStrokeBottom)) else Brush.linearGradient(listOf(LiquidGlassStrokeTopLight, LiquidGlassStrokeBottomLight)),
     content: @Composable RowScope.() -> Unit
 ) {
     val view = LocalView.current
@@ -96,7 +96,7 @@ fun LiquidGlassButton(
             containerColor = containerColor,
             contentColor = contentColor,
             disabledContainerColor = Color(0x33FFFFFF),
-            disabledContentColor = LiquidGlassTextMuted
+            disabledContentColor = if (androidx.compose.foundation.isSystemInDarkTheme()) LiquidGlassTextMuted else LiquidGlassTextMutedLight
         ),
         border = androidx.compose.foundation.BorderStroke(LiquidGlassStrokeWidth, borderBrush),
         interactionSource = interactionSource,
@@ -116,7 +116,7 @@ fun LiquidGlassIconButton(
     contentDescription: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = LiquidGlassTextPrimary
+    tint: Color = if (androidx.compose.foundation.isSystemInDarkTheme()) LiquidGlassTextPrimary else LiquidGlassTextPrimaryLight
 ) {
     val view = LocalView.current
     var isPressed by remember { mutableStateOf(false) }
@@ -130,17 +130,19 @@ fun LiquidGlassIconButton(
         label = "IconButtonSpring"
     )
 
+    val borderBrush = if (androidx.compose.foundation.isSystemInDarkTheme()) Brush.linearGradient(listOf(LiquidGlassStrokeTop, LiquidGlassStrokeBottom)) else Brush.linearGradient(listOf(LiquidGlassStrokeTopLight, LiquidGlassStrokeBottomLight))
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .scale(scale)
             .size(48.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(LiquidGlassFill)
-            .border(LiquidGlassStrokeWidth, LiquidGlassBorderBrush, RoundedCornerShape(24.dp))
+            .background(if (androidx.compose.foundation.isSystemInDarkTheme()) LiquidGlassFill else LiquidGlassFillLight)
+            .border(LiquidGlassStrokeWidth, borderBrush, RoundedCornerShape(24.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true, radius = 24.dp)
+                indication = androidx.compose.material3.ripple(bounded = true, radius = 24.dp)
             ) {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onClick()
@@ -171,11 +173,12 @@ fun LiquidGlassTextField(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null
 ) {
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label, color = LiquidGlassTextMuted, fontSize = 13.sp) },
-        placeholder = { if (placeholder.isNotEmpty()) Text(placeholder, color = LiquidGlassTextMuted, fontSize = 13.sp) },
+        label = { Text(label, color = if (isDark) LiquidGlassTextMuted else LiquidGlassTextMutedLight, fontSize = 13.sp) },
+        placeholder = { if (placeholder.isNotEmpty()) Text(placeholder, color = if (isDark) LiquidGlassTextMuted else LiquidGlassTextMutedLight, fontSize = 13.sp) },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         visualTransformation = visualTransformation,
@@ -184,12 +187,12 @@ fun LiquidGlassTextField(
         singleLine = singleLine,
         maxLines = maxLines,
         shape = LiquidGlassShape,
-        textStyle = TextStyle(color = LiquidGlassTextPrimary, fontSize = 15.sp),
+        textStyle = TextStyle(color = if (isDark) LiquidGlassTextPrimary else LiquidGlassTextPrimaryLight, fontSize = 15.sp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = LiquidGlassFillElevated,
-            unfocusedContainerColor = LiquidGlassFill,
+            focusedContainerColor = if (isDark) LiquidGlassFillElevated else LiquidGlassFillElevatedLight,
+            unfocusedContainerColor = if (isDark) LiquidGlassFill else LiquidGlassFillLight,
             focusedBorderColor = GlassCyanAccent,
-            unfocusedBorderColor = LiquidGlassStrokeTop,
+            unfocusedBorderColor = if (isDark) LiquidGlassStrokeTop else LiquidGlassStrokeTopLight,
             cursorColor = GlassCyanAccent
         ),
         modifier = modifier

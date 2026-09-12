@@ -1,4 +1,5 @@
 package com.example.ui.client
+import androidx.compose.ui.text.style.TextAlign
 
 import android.content.Intent
 import android.net.Uri
@@ -373,7 +374,7 @@ fun PowerOsClientScreen(
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Resume Download", style = Typography.labelLarge)
+                                Text("Resume Download", style = Typography.labelLarge, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
                             }
                         }
                     }
@@ -426,7 +427,7 @@ fun PowerOsClientScreen(
                                 } else {
                                     Icon(Icons.Default.Refresh, contentDescription = null)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Check for Updates", style = Typography.labelLarge)
+                                    Text("Check for Updates", style = Typography.labelLarge, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
                                 }
                             }
                         }

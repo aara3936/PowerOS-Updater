@@ -18,25 +18,30 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.example.R
 import com.example.ui.theme.NightFieldBackground
-import com.example.ui.theme.NightFieldSurface
+import com.example.ui.theme.DayFieldBackground
 
 @Composable
 fun GlassBackground(
     modifier: Modifier = Modifier,
+    isBlurred: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val bgColor = if (isDark) NightFieldBackground else DayFieldBackground
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(NightFieldBackground)
+            .background(bgColor)
     ) {
-        // Wallpaper / Night-field visual layer with RenderEffect blur
+        // Wallpaper visual layer with conditional RenderEffect blur
         val wallpaperModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Modifier
                 .fillMaxSize()
                 .graphicsLayer {
                     try {
-                        val blur = RenderEffect.createBlurEffect(28f, 28f, Shader.TileMode.CLAMP)
+                        val blurRadius = if (isBlurred) 25f else 0.1f // High blur for dialogs
+                        val blur = RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
                         renderEffect = blur.asComposeRenderEffect()
                     } catch (_: Throwable) {
                         // Fallback safely
@@ -46,7 +51,6 @@ fun GlassBackground(
             Modifier.fillMaxSize()
         }
 
-        // Try to draw wallpaper resource or dark ambient fallback
         Box(modifier = wallpaperModifier) {
             Image(
                 painter = painterResource(id = R.drawable.bg_wallpaper),
@@ -61,16 +65,24 @@ fun GlassBackground(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color(0x990A0D14),
-                                Color(0xDD0A0D14),
-                                NightFieldBackground
+                                if (isDark) Color(0x990A0D14) else Color(0x33FFFFFF),
+                                if (isDark) Color(0xDD0A0D14) else Color(0x99FFFFFF),
+                                bgColor
                             )
                         )
                     )
             )
         }
 
-        // Foreground content
+        // Additional dim layer for dialogs to prevent text bleed-through
+        if (isBlurred) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(if (isDark) com.example.ui.theme.LiquidGlassFillDark else com.example.ui.theme.LiquidGlassBackdropLight)
+            )
+        }
+
         content()
     }
 }

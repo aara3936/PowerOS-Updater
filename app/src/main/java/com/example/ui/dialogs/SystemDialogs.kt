@@ -163,7 +163,7 @@ fun DeveloperAuthDialog(
                             modifier = Modifier.weight(1f),
                             isPrimary = false
                         ) {
-                            Text("Cancel", style = Typography.labelLarge)
+                            Text("Cancel", style = Typography.labelLarge, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
                         }
 
                         LiquidGlassButton(
@@ -194,7 +194,7 @@ fun DeveloperAuthDialog(
                             modifier = Modifier.weight(1f),
                             isPrimary = true
                         ) {
-                            Text("Authenticate", style = Typography.labelLarge)
+                            Text("Authenticate", style = Typography.labelLarge, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
                         }
                     }
                 }
@@ -282,7 +282,7 @@ fun SecurityLockoutDialog(
                         modifier = Modifier.fillMaxWidth(),
                         isPrimary = false
                     ) {
-                        Text("Acknowledge", style = Typography.labelLarge)
+                        Text("Acknowledge", style = Typography.labelLarge, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
                     }
                 }
             }
@@ -413,7 +413,7 @@ fun SettingsDialog(
                                     contentColor = if (isSelected) PowerOnPrimary else LiquidGlassTextPrimary
                                 )
                             ) {
-                                Text(channel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text(channel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 4.dp))
                             }
                         }
                     }
@@ -449,7 +449,7 @@ fun SettingsDialog(
                         modifier = Modifier.fillMaxWidth(),
                         isPrimary = true
                     ) {
-                        Text("Save & Close", style = Typography.labelLarge)
+                        Text("Save & Close", style = Typography.labelLarge, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
                     }
                 }
             }
@@ -517,7 +517,7 @@ fun DeviceSpecsDialog(
                 modifier = Modifier.fillMaxWidth(),
                 isPrimary = false
             ) {
-                Text("Dismiss", style = Typography.labelLarge)
+                Text("Dismiss", style = Typography.labelLarge, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
             }
         }
     }
@@ -592,7 +592,7 @@ fun UpdateHistoryDialog(
                 modifier = Modifier.fillMaxWidth(),
                 isPrimary = false
             ) {
-                Text("Close", style = Typography.labelLarge)
+                Text("Close", style = Typography.labelLarge, maxLines = 2, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
             }
         }
     }

@@ -33,13 +33,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         DeveloperAuthManager.init(applicationContext)
 
-        // Module 3.3 Session Auto-Purge Security:
-        // Automatically revoke developer privileges and lock portal whenever app is paused or stopped.
-        lifecycle.addObserver(LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
-                viewModel.onAppSentToBackground()
-            }
-        })
+        // Session state is preserved when app pauses or stops.
+        // We removed onAppSentToBackground() to keep the developer portal open.
 
         setContent {
             PowerOSTheme {
@@ -54,7 +49,8 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                GlassBackground {
+                val isBlurred = uiState.isDeveloperModeActive || uiState.showAuthDialog || uiState.showLockoutDialog || uiState.showSettingsDialog || uiState.showSpecsDialog || uiState.showHistoryDialog
+                GlassBackground(isBlurred = isBlurred) {
                     Scaffold(
                         containerColor = Color.Transparent,
                         snackbarHost = { SnackbarHost(snackbarHostState) }

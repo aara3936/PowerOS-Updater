@@ -1,10 +1,10 @@
 {
   "name": "Power OS",
-  "description": "Power OS OTA Updater v2.0-BETA with Liquid Glass UI, secure developer portal, real foreground download engine, and native core.",
+  "description": "Power OS OTA Updater v2.1-BETA with Liquid Glass UI, secure developer portal, real foreground download engine, and native core.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"],
-  "version": "2.0.0-BETA",
-  "versionCode": 200,
+  "version": "2.1.0-BETA",
+  "versionCode": 210,
   "stable": {
     "version": "3.A.7.0.102GL",
     "versionCode": 3790,

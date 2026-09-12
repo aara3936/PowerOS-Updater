@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+import androidx.compose.material3.lightColorScheme
+
 private val DarkColorScheme = darkColorScheme(
     primary = GlassCyanAccent,
     onPrimary = PowerOnPrimary,
@@ -20,20 +22,30 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = LiquidGlassTextPrimary
 )
 
+private val LightColorScheme = lightColorScheme(
+    primary = GlassCyanAccent,
+    onPrimary = PowerOnPrimary,
+    secondary = GlassEmerald,
+    background = DayFieldBackground,
+    surface = DayFieldSurface,
+    onBackground = LiquidGlassTextPrimaryLight,
+    onSurface = LiquidGlassTextPrimaryLight
+)
+
 @Composable
 fun PowerOSTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = DarkColorScheme
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = NightFieldBackground.toArgb()
-            window.navigationBarColor = NightFieldBackground.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
