@@ -102,6 +102,12 @@ object PowerOsNativeCore {
                 val digest = MessageDigest.getInstance("SHA-256")
                 digest.digest(keyBytes)
             }
+            if (isNativeLoaded) {
+                val cipherBytes = nativeEncryptAesGcm(plainText.toByteArray(Charsets.UTF_8), validKey)
+                if (cipherBytes != null) return encodeBase64(cipherBytes)
+            }
+            
+            // Fallback to JVM
             val secretKey: SecretKey = SecretKeySpec(validKey, "AES")
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             val iv = ByteArray(12)
@@ -126,15 +132,23 @@ object PowerOsNativeCore {
         return try {
             val combined = decodeBase64(encodedCipherText)
             if (combined.size < 12) return ""
+            
+            val validKey = if (keyBytes.size == 32) keyBytes else {
+                val digest = MessageDigest.getInstance("SHA-256")
+                digest.digest(keyBytes)
+            }
+            
+            if (isNativeLoaded) {
+                val plainBytes = nativeDecryptAesGcm(combined, validKey)
+                if (plainBytes != null) return String(plainBytes, Charsets.UTF_8)
+            }
+            
+            // Fallback to JVM
             val iv = ByteArray(12)
             System.arraycopy(combined, 0, iv, 0, 12)
             val cipherText = ByteArray(combined.size - 12)
             System.arraycopy(combined, 12, cipherText, 0, cipherText.size)
 
-            val validKey = if (keyBytes.size == 32) keyBytes else {
-                val digest = MessageDigest.getInstance("SHA-256")
-                digest.digest(keyBytes)
-            }
             val secretKey: SecretKey = SecretKeySpec(validKey, "AES")
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             val gcmSpec = GCMParameterSpec(128, iv)
@@ -263,4 +277,6 @@ object PowerOsNativeCore {
 
     private external fun nativeIsAvailable(): Boolean
     private external fun nativeVerifySha256(filePath: String, expectedSha256: String): Boolean
+    private external fun nativeEncryptAesGcm(plainText: ByteArray, keyBytes: ByteArray): ByteArray?
+    private external fun nativeDecryptAesGcm(cipherData: ByteArray, keyBytes: ByteArray): ByteArray?
 }

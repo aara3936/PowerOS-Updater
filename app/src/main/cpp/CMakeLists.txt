@@ -1,28 +1,24 @@
 cmake_minimum_required(VERSION 3.22.1)
 project("poweros_core")
 
-find_program(CARGO_CMD cargo)
+include(FetchContent)
+FetchContent_Declare(
+    mbedtls
+    GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
+    GIT_TAG v3.5.0
+)
+set(ENABLE_PROGRAMS OFF CACHE BOOL "Disable mbedtls programs")
+set(ENABLE_TESTING OFF CACHE BOOL "Disable mbedtls tests")
+FetchContent_MakeAvailable(mbedtls)
 
-if (CARGO_CMD)
-    # Rust NDK integration using Corrosion
-    include(FetchContent)
-    FetchContent_Declare(
-        Corrosion
-        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-        GIT_TAG v0.4.7
-    )
-    FetchContent_MakeAvailable(Corrosion)
+add_library(poweros_core SHARED
+    poweros_core.cpp
+)
 
-    corrosion_import_crate(MANIFEST_PATH ../rust/Cargo.toml)
-else()
-    # Fallback C++ implementation for environments without Rust toolchain
-    add_library(poweros_core SHARED
-        poweros_core.cpp
-    )
+find_library(log-lib log)
 
-    find_library(log-lib log)
-
-    target_link_libraries(poweros_core
-        ${log-lib}
-    )
-endif()
+target_link_libraries(poweros_core
+    PRIVATE
+    mbedcrypto
+    ${log-lib}
+)

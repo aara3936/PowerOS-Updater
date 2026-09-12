@@ -17,6 +17,12 @@ android {
         versionName = "2.1.0-BETA"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags("")
+                abiFilters("arm64-v8a", "x86_64")
+            }
+        }
     }
 
     buildTypes {
@@ -41,6 +47,13 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    externalNativeBuild {
+        cmake {
+            path("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 }
 
