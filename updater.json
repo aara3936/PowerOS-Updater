@@ -2,18 +2,28 @@
   "beta": {
     "version": "4.09STABLEE1R3S09(EXO001) PK",
     "version_code": 9999,
-    "download_url": "https://github.com/aara3936/PowerOS-Updater/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
+    "download_url": "https:\/\/github.com\/aara3936\/PowerOS-Updater\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
     "changelog": "Power OS 4.0 Fleet Release Sync"
   },
   "stable": {
     "version": "4.09STABLEE1R3S09(EXO001) PK",
     "version_code": 9999,
-    "download_url": "https://github.com/aara3936/PowerOS-Updater/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
+    "download_url": "https:\/\/github.com\/aara3936\/PowerOS-Updater\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
     "changelog": "Power OS 4.0 Fleet Release Sync"
   },
   "version": "4.09STABLEE1R3S09(EXO001) PK",
   "version_code": 9999,
-  "download_url": "https://github.com/aara3936/PowerOS-Updater/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
-  "changelog": "Power OS 4.0 Fleet Release Sync"
+  "download_url": "https:\/\/github.com\/aara3936\/PowerOS-Updater\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
+  "changelog": "Power OS 4.0 Fleet Release Sync",
+  "channels": {
+    "beta": {
+      "version": "2.2.0-BETA",
+      "versionCode": 220,
+      "releaseDate": "2026-09-13",
+      "size": "25 MB",
+      "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-Updater\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
+      "sha256": "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859",
+      "changelog": "Power OS 2.2.0-BETA (beta):\n• Direct GitHub pipeline release\n• High-performance chunked auto-resume"
+    }
+  }
 }
-
