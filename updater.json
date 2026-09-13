@@ -25,5 +25,10 @@
       "sha256": "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859",
       "changelog": "Power OS 2.2.0-BETA (beta):\n• Direct GitHub pipeline release\n• High-performance chunked auto-resume"
     }
+  },
+  "announcement": {
+    "title": "Power OS V2.1.0-BETA Fleet Update",
+    "date": "2026-09-13",
+    "message": "System reboot active. Zero-lag MVVM engine deployed."
   }
 }
