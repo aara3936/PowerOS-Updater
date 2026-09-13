@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -103,13 +104,13 @@ class MainViewModel(
     }
 
     /**
-     * Continuous 15-second real-time sync polling loop.
+     * Continuous 5-second zero-latency GitHub ETag sync polling loop.
      * Guaranteed asynchronous execution on Dispatchers.IO.
      */
     fun startRealtimePolling(context: Context) {
         viewModelScope.launch(dispatchers.io) {
-            while (true) {
-                kotlinx.coroutines.delay(15000L)
+            while (isActive) {
+                kotlinx.coroutines.delay(5000L)
                 OtaEngine.checkForUpdates(context)
             }
         }

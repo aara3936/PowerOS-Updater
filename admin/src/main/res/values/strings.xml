@@ -10,4 +10,7 @@
     <string name="label_zip_url">Binary Payload Zip URL</string>
     <string name="btn_broadcast_announcement">Push Announcement</string>
     <string name="btn_trigger_ota_update">Deploy OTA Release</string>
+    <string name="label_github_repo">GitHub Repository (owner/repo)</string>
+    <string name="label_github_token">GitHub Personal Access Token (PAT)</string>
+    <string name="hint_github_token">ghp_... (repo scope)</string>
 </resources>

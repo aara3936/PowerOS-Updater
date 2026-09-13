@@ -1,6 +1,7 @@
 package com.example.core.engine
 
 import android.content.Context
+import android.util.Base64
 import com.example.core.dispatcher.DefaultDispatcherProvider
 import com.example.core.dispatcher.DispatcherProvider
 import com.example.core.model.ReleaseChannel
@@ -12,6 +13,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -22,11 +25,17 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object OtaEngine {
+    private const val GITHUB_CONTENTS_API_URL = "https://api.github.com/repos/aara3936/PowerOS-OTA/contents/updater.json"
     private const val DEFAULT_MANIFEST_URL = "https://raw.githubusercontent.com/aara3936/PowerOS-OTA/main/updater.json"
     const val CURRENT_VERSION_CODE = 210
     const val CURRENT_VERSION_NAME = "2.1.0-BETA"
 
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
+    private val downloadMutex = Mutex()
+    private var isCurrentlyDownloading: Boolean = false
+
+    private var lastEtag: String? = null
+    private var cachedManifestJson: String = ""
 
     private val httpClient by lazy {
         OkHttpClient.Builder()
@@ -82,70 +91,152 @@ object OtaEngine {
     }
 
     /**
-     * Checks for updates from live backend / GitHub raw repository.
-     * Incorporates cache-busting to immediately reflect remote publishes.
-     * Guaranteed asynchronous execution on Dispatchers.IO.
+     * Checks for updates from GitHub using dynamic ETag / Header validation.
+     * Detects remote changes instantly with minimal network overhead.
+     * When a newer release is detected, AUTO-TRIGGERS the background download pipeline
+     * with zero manual user interaction.
      */
     suspend fun checkForUpdates(
         context: Context,
         targetChannel: ReleaseChannel = _currentChannelFlow.value
     ): CheckResult = withContext(dispatchers.io) {
-        _statusFlow.value = SystemUpdateStatus.CHECKING
+        if (!isCurrentlyDownloading && _statusFlow.value != SystemUpdateStatus.READY_TO_INSTALL) {
+            _statusFlow.value = SystemUpdateStatus.CHECKING
+        }
+
         try {
-            val cacheBusterUrl = "$DEFAULT_MANIFEST_URL?nocache=${System.currentTimeMillis()}"
-            val manifestJson = fetchManifestString(cacheBusterUrl).ifBlank {
-                fetchManifestString(DEFAULT_MANIFEST_URL)
-            }
+            val manifestJson = fetchManifestWithEtag()
 
-            val announcement = parseAnnouncementJson(manifestJson)
-            if (announcement != null) {
-                _announcementFlow.value = announcement
-            }
+            if (manifestJson.isNotBlank()) {
+                val announcement = parseAnnouncementJson(manifestJson)
+                if (announcement != null && announcement != _announcementFlow.value) {
+                    _announcementFlow.value = announcement
+                }
 
-            val release = parseReleaseJson(manifestJson, targetChannel)
+                val release = parseReleaseJson(manifestJson, targetChannel)
 
-            if (release != null && release.versionCode > CURRENT_VERSION_CODE) {
-                _latestReleaseFlow.value = release
-                _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
+                if (release != null && release.versionCode > CURRENT_VERSION_CODE) {
+                    _latestReleaseFlow.value = release
 
-                // Auto-Download Engine: If newer build is detected, initiate background download
-                val downloadedPath = downloadUpdatePackage(context, release)
-                if (downloadedPath != null) {
-                    _downloadedFileFlow.value = downloadedPath
-                    _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
-                    CheckResult.UpdateReady(release, downloadedPath)
+                    // If already downloaded and verified, keep READY_TO_INSTALL
+                    val updatesDir = File(context.filesDir, "updates")
+                    val targetFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip")
+                    if (targetFile.exists() && targetFile.length() > 0 &&
+                        NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)) {
+                        _downloadProgressFlow.value = 100
+                        _downloadedFileFlow.value = targetFile.absolutePath
+                        _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
+                        return@withContext CheckResult.UpdateReady(release, targetFile.absolutePath)
+                    }
+
+                    // Auto-Trigger Download Pipeline: zero manual interaction required
+                    if (!isCurrentlyDownloading) {
+                        _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
+                        val downloadedPath = downloadUpdatePackage(context, release)
+                        if (downloadedPath != null) {
+                            _downloadedFileFlow.value = downloadedPath
+                            _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
+                            return@withContext CheckResult.UpdateReady(release, downloadedPath)
+                        } else {
+                            _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
+                            return@withContext CheckResult.UpdateFound(release)
+                        }
+                    } else {
+                        return@withContext CheckResult.UpdateFound(release)
+                    }
                 } else {
-                    _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
-                    CheckResult.UpdateFound(release)
+                    if (!isCurrentlyDownloading && _statusFlow.value != SystemUpdateStatus.READY_TO_INSTALL) {
+                        _statusFlow.value = SystemUpdateStatus.UP_TO_DATE
+                    }
+                    return@withContext CheckResult.UpToDate
                 }
             } else {
-                _statusFlow.value = SystemUpdateStatus.UP_TO_DATE
-                CheckResult.UpToDate
+                return@withContext fallbackStorageCheck(context, targetChannel)
             }
         } catch (_: Exception) {
-            // Check fallback: if downloaded package already exists in internal storage
-            val updatesDir = File(context.filesDir, "updates")
-            val existing = updatesDir.listFiles()?.firstOrNull { it.isFile && it.length() > 0 }
-            if (existing != null) {
-                _downloadedFileFlow.value = existing.absolutePath
-                _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
-                CheckResult.UpdateReady(
-                    UpdateRelease(
-                        version = "2.2.0-BETA",
-                        versionCode = 220,
-                        releaseDate = "2026-09-15",
-                        size = "${existing.length() / 1024} KB",
-                        zipUrl = "",
-                        changelog = "Downloaded update ready",
-                        channel = targetChannel.tag
-                    ),
-                    existing.absolutePath
-                )
-            } else {
-                _statusFlow.value = SystemUpdateStatus.UP_TO_DATE
-                CheckResult.UpToDate
-            }
+            return@withContext fallbackStorageCheck(context, targetChannel)
         }
+    }
+
+    private suspend fun fallbackStorageCheck(context: Context, targetChannel: ReleaseChannel): CheckResult {
+        val updatesDir = File(context.filesDir, "updates")
+        val existing = updatesDir.listFiles()?.firstOrNull { it.isFile && it.length() > 0 && !it.name.endsWith(".part") }
+        return if (existing != null) {
+            _downloadedFileFlow.value = existing.absolutePath
+            _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
+            CheckResult.UpdateReady(
+                UpdateRelease(
+                    version = "2.2.0-BETA",
+                    versionCode = 220,
+                    releaseDate = "2026-09-15",
+                    size = "${existing.length() / 1024} KB",
+                    zipUrl = "",
+                    changelog = "Downloaded update ready",
+                    channel = targetChannel.tag
+                ),
+                existing.absolutePath
+            )
+        } else {
+            if (!isCurrentlyDownloading && _statusFlow.value != SystemUpdateStatus.READY_TO_INSTALL) {
+                _statusFlow.value = SystemUpdateStatus.UP_TO_DATE
+            }
+            CheckResult.UpToDate
+        }
+    }
+
+    /**
+     * Dynamic ETag / Header checking against GitHub repository API endpoints.
+     * Returns HTTP 304 (Not Modified) with zero payload latency when unchanged.
+     */
+    private fun fetchManifestWithEtag(): String {
+        // 1. Try GitHub Contents API with ETag
+        try {
+            val reqBuilder = Request.Builder()
+                .url(GITHUB_CONTENTS_API_URL)
+                .header("Accept", "application/vnd.github.v3+json")
+
+            lastEtag?.let {
+                reqBuilder.header("If-None-Match", it)
+            }
+
+            httpClient.newCall(reqBuilder.build()).execute().use { response ->
+                if (response.code == 304 && cachedManifestJson.isNotBlank()) {
+                    return cachedManifestJson
+                }
+                if (response.isSuccessful) {
+                    val etag = response.header("ETag")
+                    if (!etag.isNullOrBlank()) lastEtag = etag
+
+                    val bodyStr = response.body?.string().orEmpty()
+                    if (bodyStr.contains("\"content\"")) {
+                        val obj = JSONObject(bodyStr)
+                        val base64Content = obj.optString("content", "").replace("\n", "").replace("\r", "")
+                        val decoded = String(Base64.decode(base64Content, Base64.DEFAULT), Charsets.UTF_8)
+                        if (decoded.isNotBlank()) {
+                            cachedManifestJson = decoded
+                            return decoded
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Direct Raw GitHub URL with Cache Buster Fallback
+        try {
+            val cacheBusterUrl = "$DEFAULT_MANIFEST_URL?nocache=${System.currentTimeMillis()}"
+            val req = Request.Builder().url(cacheBusterUrl).build()
+            httpClient.newCall(req).execute().use { response ->
+                if (response.isSuccessful) {
+                    val str = response.body?.string().orEmpty()
+                    if (str.isNotBlank()) {
+                        cachedManifestJson = str
+                        return str
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        return cachedManifestJson
     }
 
     /**
@@ -156,206 +247,197 @@ object OtaEngine {
      */
     suspend fun downloadUpdatePackage(context: Context, release: UpdateRelease): String? = withContext(dispatchers.io) {
         if (release.zipUrl.isBlank()) return@withContext null
-        _statusFlow.value = SystemUpdateStatus.DOWNLOADING
 
-        val updatesDir = File(context.filesDir, "updates").apply { mkdirs() }
-        val targetFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip")
-        val partFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip.part")
+        downloadMutex.withLock {
+            isCurrentlyDownloading = true
+            _statusFlow.value = SystemUpdateStatus.DOWNLOADING
 
-        // If target file already exists and passes security checks, return immediately
-        if (targetFile.exists() && targetFile.length() > 0) {
-            val isHeaderValid = NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)
-            val isSha256Valid = release.sha256.isBlank() || NativeSecurityBridge.verifyIntegrity(
-                targetFile.absolutePath,
-                release.sha256,
-                dispatchers.io
-            )
-            if (isHeaderValid && isSha256Valid) {
-                _downloadProgressFlow.value = 100
-                _downloadSpeedFlow.value = "100%"
-                _downloadEtaFlow.value = "Ready"
-                _isResumingFlow.value = false
-                _downloadedFileFlow.value = targetFile.absolutePath
-                _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
-                return@withContext targetFile.absolutePath
+            val updatesDir = File(context.filesDir, "updates").apply { mkdirs() }
+            val targetFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip")
+            val partFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip.part")
+
+            // If target file already exists and passes security checks, return immediately
+            if (targetFile.exists() && targetFile.length() > 0) {
+                val isHeaderValid = NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)
+                val isSha256Valid = release.sha256.isBlank() || NativeSecurityBridge.verifyIntegrity(
+                    targetFile.absolutePath,
+                    release.sha256,
+                    dispatchers.io
+                )
+                if (isHeaderValid && isSha256Valid) {
+                    _downloadProgressFlow.value = 100
+                    _downloadSpeedFlow.value = "100%"
+                    _downloadEtaFlow.value = "Ready"
+                    _isResumingFlow.value = false
+                    _downloadedFileFlow.value = targetFile.absolutePath
+                    _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
+                    isCurrentlyDownloading = false
+                    return@withLock targetFile.absolutePath
+                }
             }
-        }
 
-        val maxRetries = 5
-        var retryCount = 0
-        var downloadSuccess = false
+            val maxRetries = 5
+            var retryCount = 0
+            var downloadSuccess = false
 
-        while (retryCount < maxRetries && !downloadSuccess) {
-            val existingBytes = if (partFile.exists()) partFile.length() else 0L
-            val isResuming = existingBytes > 0L
-            _isResumingFlow.value = isResuming
+            while (retryCount < maxRetries && !downloadSuccess) {
+                val existingBytes = if (partFile.exists()) partFile.length() else 0L
+                val isResuming = existingBytes > 0L
+                _isResumingFlow.value = isResuming
 
-            try {
-                val requestBuilder = Request.Builder().url(release.zipUrl)
-                if (isResuming) {
-                    requestBuilder.header("Range", "bytes=$existingBytes-")
-                }
-                val request = requestBuilder.build()
-                val response = httpClient.newCall(request).execute()
+                try {
+                    val requestBuilder = Request.Builder().url(release.zipUrl)
+                    if (isResuming) {
+                        requestBuilder.header("Range", "bytes=$existingBytes-")
+                    }
+                    val request = requestBuilder.build()
+                    val response = httpClient.newCall(request).execute()
 
-                val responseCode = response.code
-                if (responseCode != 200 && responseCode != 206 && responseCode != 416) {
-                    response.close()
-                    retryCount++
-                    delay(1500L)
-                    continue
-                }
+                    val responseCode = response.code
+                    if (responseCode != 200 && responseCode != 206 && responseCode != 416) {
+                        response.close()
+                        retryCount++
+                        delay(1500L)
+                        continue
+                    }
 
-                if (responseCode == 416) {
-                    response.close()
+                    if (responseCode == 416) {
+                        response.close()
+                        if (partFile.exists() && partFile.length() > 0) {
+                            if (targetFile.exists()) targetFile.delete()
+                            partFile.renameTo(targetFile)
+                            downloadSuccess = true
+                            break
+                        } else {
+                            partFile.delete()
+                            retryCount++
+                            continue
+                        }
+                    }
+
+                    val body = response.body
+                    if (body == null) {
+                        response.close()
+                        retryCount++
+                        delay(1000L)
+                        continue
+                    }
+
+                    val streamLength = body.contentLength()
+                    val appendMode = (responseCode == 206)
+                    val totalLength = if (appendMode) {
+                        existingBytes + if (streamLength > 0) streamLength else 0L
+                    } else {
+                        if (streamLength > 0) streamLength else 0L
+                    }
+
+                    if (!appendMode && partFile.exists()) {
+                        partFile.delete()
+                    }
+
+                    val outputStream = FileOutputStream(partFile, appendMode)
+                    val inputStream = body.byteStream()
+                    val buffer = ByteArray(16384)
+
+                    var currentBytes = if (appendMode) existingBytes else 0L
+                    var bytesRead: Int
+                    var lastWindowTime = System.currentTimeMillis()
+                    var lastWindowBytes = 0L
+
+                    inputStream.use { input ->
+                        outputStream.use { output ->
+                            while (input.read(buffer).also { bytesRead = it } != -1) {
+                                output.write(buffer, 0, bytesRead)
+                                currentBytes += bytesRead
+                                lastWindowBytes += bytesRead
+
+                                val now = System.currentTimeMillis()
+                                val elapsedMs = now - lastWindowTime
+                                if (elapsedMs >= 500) {
+                                    val speedBps = (lastWindowBytes * 1000.0) / elapsedMs
+                                    val speedMb = speedBps / (1024.0 * 1024.0)
+                                    val speedStr = if (speedMb >= 0.1) {
+                                        String.format(Locale.US, "%.2f MB/s", speedMb)
+                                    } else {
+                                        String.format(Locale.US, "%.1f KB/s", speedBps / 1024.0)
+                                    }
+                                    _downloadSpeedFlow.value = speedStr
+
+                                    if (totalLength > 0 && speedBps > 0) {
+                                        val remainingBytes = (totalLength - currentBytes).coerceAtLeast(0)
+                                        val etaSec = (remainingBytes / speedBps).toLong()
+                                        _downloadEtaFlow.value = if (etaSec >= 60) {
+                                            "${etaSec / 60}m ${etaSec % 60}s"
+                                        } else {
+                                            "${etaSec}s"
+                                        }
+                                        val progress = ((currentBytes * 100) / totalLength).toInt().coerceIn(0, 100)
+                                        _downloadProgressFlow.value = progress
+                                    }
+                                    lastWindowTime = now
+                                    lastWindowBytes = 0L
+                                }
+                            }
+                        }
+                    }
+
                     if (partFile.exists() && partFile.length() > 0) {
                         if (targetFile.exists()) targetFile.delete()
                         partFile.renameTo(targetFile)
                         downloadSuccess = true
                         break
-                    } else {
-                        partFile.delete()
-                        retryCount++
-                        continue
                     }
-                }
-
-                val body = response.body
-                if (body == null) {
-                    response.close()
+                } catch (e: Exception) {
                     retryCount++
-                    delay(1000L)
-                    continue
+                    _isResumingFlow.value = true
+                    _downloadSpeedFlow.value = "Reconnecting..."
+                    _downloadEtaFlow.value = "Auto-Resuming (${retryCount}/$maxRetries)"
+                    delay(2000L)
                 }
-
-                val streamLength = body.contentLength()
-                val appendMode = (responseCode == 206)
-                val totalLength = if (appendMode) {
-                    existingBytes + if (streamLength > 0) streamLength else 0L
-                } else {
-                    if (streamLength > 0) streamLength else 0L
-                }
-
-                if (!appendMode && partFile.exists()) {
-                    partFile.delete()
-                }
-
-                val outputStream = FileOutputStream(partFile, appendMode)
-                val inputStream = body.byteStream()
-                val buffer = ByteArray(16384)
-
-                var currentBytes = if (appendMode) existingBytes else 0L
-                var bytesRead: Int
-                var lastWindowTime = System.currentTimeMillis()
-                var lastWindowBytes = 0L
-
-                inputStream.use { input ->
-                    outputStream.use { output ->
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                            currentBytes += bytesRead
-                            lastWindowBytes += bytesRead
-
-                            val now = System.currentTimeMillis()
-                            val elapsedMs = now - lastWindowTime
-                            if (elapsedMs >= 500) {
-                                val speedBps = (lastWindowBytes * 1000.0) / elapsedMs
-                                val speedMb = speedBps / (1024.0 * 1024.0)
-                                val speedStr = if (speedMb >= 0.1) {
-                                    String.format(Locale.US, "%.2f MB/s", speedMb)
-                                } else {
-                                    String.format(Locale.US, "%.1f KB/s", speedBps / 1024.0)
-                                }
-                                _downloadSpeedFlow.value = speedStr
-
-                                if (totalLength > 0 && speedBps > 0) {
-                                    val remainingBytes = (totalLength - currentBytes).coerceAtLeast(0)
-                                    val etaSec = (remainingBytes / speedBps).toLong()
-                                    _downloadEtaFlow.value = if (etaSec >= 60) {
-                                        "${etaSec / 60}m ${etaSec % 60}s"
-                                    } else {
-                                        "${etaSec}s"
-                                    }
-                                    val progress = ((currentBytes * 100) / totalLength).toInt().coerceIn(0, 100)
-                                    _downloadProgressFlow.value = progress
-                                }
-                                lastWindowTime = now
-                                lastWindowBytes = 0L
-                            }
-                        }
-                    }
-                }
-
-                if (partFile.exists() && partFile.length() > 0) {
-                    if (targetFile.exists()) targetFile.delete()
-                    partFile.renameTo(targetFile)
-                    downloadSuccess = true
-                    break
-                }
-            } catch (e: Exception) {
-                // Connection interruption: pause gracefully and auto-resume from byte offset
-                retryCount++
-                _isResumingFlow.value = true
-                _downloadSpeedFlow.value = "Reconnecting..."
-                _downloadEtaFlow.value = "Auto-Resuming (${retryCount}/$maxRetries)"
-                delay(2000L)
-            }
-        }
-
-        if (downloadSuccess && targetFile.exists() && targetFile.length() > 0) {
-            // Native Security Integrity & Header Validation
-            val isHeaderValid = NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)
-            if (!isHeaderValid) {
-                targetFile.delete()
-                _statusFlow.value = SystemUpdateStatus.ERROR
-                _downloadSpeedFlow.value = "Corrupt payload"
-                _downloadEtaFlow.value = ""
-                return@withContext null
             }
 
-            if (release.sha256.isNotBlank()) {
-                val isSha256Valid = NativeSecurityBridge.verifyIntegrity(
-                    targetFile.absolutePath,
-                    release.sha256,
-                    dispatchers.io
-                )
-                if (!isSha256Valid) {
+            isCurrentlyDownloading = false
+
+            if (downloadSuccess && targetFile.exists() && targetFile.length() > 0) {
+                // Native Security Integrity & Header Validation
+                val isHeaderValid = NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)
+                if (!isHeaderValid) {
                     targetFile.delete()
                     _statusFlow.value = SystemUpdateStatus.ERROR
-                    _downloadSpeedFlow.value = "Hash mismatch"
+                    _downloadSpeedFlow.value = "Corrupt payload"
                     _downloadEtaFlow.value = ""
-                    return@withContext null
+                    return@withLock null
                 }
-            }
 
-            _downloadProgressFlow.value = 100
-            _downloadSpeedFlow.value = "Verified"
-            _downloadEtaFlow.value = "Ready to install"
-            _isResumingFlow.value = false
-            _downloadedFileFlow.value = targetFile.absolutePath
-            _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
-            targetFile.absolutePath
-        } else {
-            _statusFlow.value = SystemUpdateStatus.ERROR
-            _downloadSpeedFlow.value = "Download failed"
-            _downloadEtaFlow.value = ""
-            _isResumingFlow.value = false
-            null
-        }
-    }
-
-    private fun fetchManifestString(url: String): String {
-        return try {
-            val request = Request.Builder().url(url).build()
-            httpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    response.body?.string().orEmpty()
-                } else {
-                    ""
+                if (release.sha256.isNotBlank()) {
+                    val isSha256Valid = NativeSecurityBridge.verifyIntegrity(
+                        targetFile.absolutePath,
+                        release.sha256,
+                        dispatchers.io
+                    )
+                    if (!isSha256Valid) {
+                        targetFile.delete()
+                        _statusFlow.value = SystemUpdateStatus.ERROR
+                        _downloadSpeedFlow.value = "Hash mismatch"
+                        _downloadEtaFlow.value = ""
+                        return@withLock null
+                    }
                 }
+
+                _downloadProgressFlow.value = 100
+                _downloadSpeedFlow.value = "Verified"
+                _downloadEtaFlow.value = "Ready to install"
+                _isResumingFlow.value = false
+                _downloadedFileFlow.value = targetFile.absolutePath
+                _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
+                targetFile.absolutePath
+            } else {
+                _statusFlow.value = SystemUpdateStatus.ERROR
+                _downloadSpeedFlow.value = "Download failed"
+                _downloadEtaFlow.value = ""
+                _isResumingFlow.value = false
+                null
             }
-        } catch (_: Exception) {
-            ""
         }
     }
 
