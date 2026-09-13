@@ -1,35 +1,6 @@
 {
-  "announcement": {
-    "title": "Power OS V2.1.0-BETA Fleet Update",
-    "date": "2026-09-13",
-    "message": "System reboot active. Zero-lag MVVM engine deployed."
-  },
-  "channels": {
-    "stable": {
-      "version": "4.09STABLEE1R3S09(EXO001) PK",
-      "versionCode": 1094,
-      "releaseDate": "2026-09-13",
-      "size": "25 MB",
-      "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
-      "sha256": "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859",
-      "changelog": "Power OS 4.09STABLEE1R3S09(EXO001) PK (stable):\n• Direct GitHub pipeline release\n• High-performance chunked auto-resume"
-    },
-    "beta": {
-      "version": "4.09STABLEE1R3S09(EXO001) PK",
-      "versionCode": 1094,
-      "releaseDate": "2026-09-13",
-      "size": "25 MB",
-      "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-Updater\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
-      "sha256": "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859",
-      "changelog": "Power OS 4.09STABLEE1R3S09(EXO001) PK (beta):\n• Direct GitHub pipeline release\n• High-performance chunked auto-resume"
-    }
-  },
-  "stable": {
-    "version": "2.1.0-BETA",
-    "versionCode": 210,
-    "releaseDate": "2026-09-13",
-    "size": "15 MB",
-    "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v2.1.0\/PowerOS_v2.1.0.zip",
-    "changelog": "Power OS V2.1.0-BETA:\n• Complete purge and clean minimal foundation reboot.\n• High-resolution vector branding."
-  }
+  "version": "2.2.0-BETA",
+  "version_code": 999,
+  "download_url": "https://github.com/aara3936/PowerOS-Updater/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
+  "changelog": "Power OS 2.2.0 Beta Update directly deployed via Admin Console."
 }
