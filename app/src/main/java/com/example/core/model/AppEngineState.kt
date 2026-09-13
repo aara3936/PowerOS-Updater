@@ -12,11 +12,17 @@ data class AppEngineState(
     val hardwareAccelerated: Boolean = true,
     val displayRefreshRateHz: Float = 60.0f,
     val targetFrameTimeBudgetMs: Float = 16.67f,
-    val lifecycleStateDescription: String = "Created"
+    val lifecycleStateDescription: String = "Created",
+    val updateStatus: SystemUpdateStatus = SystemUpdateStatus.UP_TO_DATE,
+    val latestRelease: UpdateRelease? = null,
+    val downloadProgress: Int = 0,
+    val downloadedFilePath: String? = null
 )
 
 sealed interface AppEngineEvent {
     data class CoreInitialized(val timestampMs: Long) : AppEngineEvent
     data class DisplayRefreshRateUpdated(val refreshRateHz: Float, val frameBudgetMs: Float) : AppEngineEvent
     data class LifecycleUpdated(val stateName: String) : AppEngineEvent
+    data class UpdateStatusChanged(val status: SystemUpdateStatus) : AppEngineEvent
+    data class UpdateDownloadCompleted(val filePath: String) : AppEngineEvent
 }

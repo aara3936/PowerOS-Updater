@@ -78,4 +78,38 @@ class PowerOsUpdaterTest {
         assertEquals(120.0f, updatedState.displayRefreshRateHz, 0.01f)
         assertEquals(8.33f, updatedState.targetFrameTimeBudgetMs, 0.1f)
     }
+
+    @Test
+    fun testOtaManifestParsing() {
+        val sampleJson = """
+            {
+              "stable": {
+                "version": "2.2.0-RELEASE",
+                "versionCode": 220,
+                "releaseDate": "2026-09-15",
+                "size": "25 MB",
+                "zipUrl": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.2.0/update.zip",
+                "changelog": "Power OS 2.2.0"
+              }
+            }
+        """.trimIndent()
+
+        val release = com.example.core.engine.OtaEngine.parseReleaseJson(sampleJson)
+        org.junit.Assert.assertNotNull(release)
+        assertEquals("2.2.0-RELEASE", release?.version)
+        assertEquals(220, release?.versionCode)
+        assertEquals("https://github.com/aara3936/PowerOS-OTA/releases/download/v2.2.0/update.zip", release?.zipUrl)
+        assertTrue(release!!.versionCode > com.example.core.engine.OtaEngine.CURRENT_VERSION_CODE)
+    }
+
+    @Test
+    fun testMenuActions() = runTest(testDispatcher) {
+        val repo = SystemCoreRepository(testDispatchers)
+        val viewModel = MainViewModel(repo, testDispatchers)
+
+        viewModel.onBetaSectionClicked()
+        viewModel.onNotificationsClicked()
+        viewModel.onPrivacyLegalClicked()
+        viewModel.onSettingsClicked()
+    }
 }

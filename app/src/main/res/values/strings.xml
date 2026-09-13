@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Power OS Updater</string>
+    <string name="header_title">Power OS</string>
     <string name="version_name">Version 2.1.0-BETA</string>
+
+    <!-- Menu Items (Strict Vertical Order) -->
+    <string name="menu_beta_section">Beta Section</string>
+    <string name="menu_notifications">Notifications &amp; Announcements</string>
+    <string name="menu_privacy_legal">Privacy Policy &amp; Legal Notices</string>
+    <string name="menu_settings">Settings</string>
+
+    <!-- Status Indicators -->
+    <string name="status_up_to_date">System Up to Date</string>
+    <string name="status_checking">Checking for Updates…</string>
+    <string name="status_update_available">New Update Available</string>
+    <string name="status_ready_to_install">Ready to Install</string>
 </resources>
