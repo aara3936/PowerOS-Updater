@@ -1,0 +1,13 @@
+<resources>
+    <string name="admin_app_name">Power OS Admin</string>
+    <string name="admin_header_title">Admin Console</string>
+    <string name="admin_subtitle">OTA Release &amp; Announcement Dispatcher</string>
+    <string name="label_announcement_title">Announcement Title</string>
+    <string name="label_announcement_message">Announcement Body</string>
+    <string name="label_active_channel">Target Release Channel</string>
+    <string name="label_release_version">Release Version (e.g. 2.2.0-BETA)</string>
+    <string name="label_release_code">Version Code (e.g. 220)</string>
+    <string name="label_zip_url">Binary Payload Zip URL</string>
+    <string name="btn_broadcast_announcement">Push Announcement</string>
+    <string name="btn_trigger_ota_update">Deploy OTA Release</string>
+</resources>

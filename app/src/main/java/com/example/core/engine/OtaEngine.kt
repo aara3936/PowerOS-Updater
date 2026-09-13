@@ -3,6 +3,8 @@ package com.example.core.engine
 import android.content.Context
 import com.example.core.dispatcher.DefaultDispatcherProvider
 import com.example.core.dispatcher.DispatcherProvider
+import com.example.core.model.ReleaseChannel
+import com.example.core.model.SystemAnnouncement
 import com.example.core.model.SystemUpdateStatus
 import com.example.core.model.UpdateRelease
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +35,12 @@ object OtaEngine {
     private val _statusFlow = MutableStateFlow(SystemUpdateStatus.UP_TO_DATE)
     val statusFlow: StateFlow<SystemUpdateStatus> = _statusFlow.asStateFlow()
 
+    private val _currentChannelFlow = MutableStateFlow(ReleaseChannel.BETA)
+    val currentChannelFlow: StateFlow<ReleaseChannel> = _currentChannelFlow.asStateFlow()
+
+    private val _announcementFlow = MutableStateFlow<SystemAnnouncement?>(null)
+    val announcementFlow: StateFlow<SystemAnnouncement?> = _announcementFlow.asStateFlow()
+
     private val _latestReleaseFlow = MutableStateFlow<UpdateRelease?>(null)
     val latestReleaseFlow: StateFlow<UpdateRelease?> = _latestReleaseFlow.asStateFlow()
 
@@ -42,15 +50,24 @@ object OtaEngine {
     private val _downloadedFileFlow = MutableStateFlow<String?>(null)
     val downloadedFileFlow: StateFlow<String?> = _downloadedFileFlow.asStateFlow()
 
+    fun setReleaseChannel(channel: ReleaseChannel) {
+        _currentChannelFlow.value = channel
+    }
+
     /**
      * Checks for updates from live backend / GitHub raw repository.
      * Guaranteed asynchronous execution on Dispatchers.IO.
      */
-    suspend fun checkForUpdates(context: Context): CheckResult = withContext(dispatchers.io) {
+    suspend fun checkForUpdates(context: Context, targetChannel: ReleaseChannel = _currentChannelFlow.value): CheckResult = withContext(dispatchers.io) {
         _statusFlow.value = SystemUpdateStatus.CHECKING
         try {
             val manifestJson = fetchManifestString(DEFAULT_MANIFEST_URL)
-            val release = parseReleaseJson(manifestJson)
+            val announcement = parseAnnouncementJson(manifestJson)
+            if (announcement != null) {
+                _announcementFlow.value = announcement
+            }
+
+            val release = parseReleaseJson(manifestJson, targetChannel)
 
             if (release != null && release.versionCode > CURRENT_VERSION_CODE) {
                 _latestReleaseFlow.value = release
@@ -79,12 +96,13 @@ object OtaEngine {
                 _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
                 CheckResult.UpdateReady(
                     UpdateRelease(
-                        version = "2.2.0",
+                        version = "2.2.0-BETA",
                         versionCode = 220,
-                        releaseDate = "2026-09-13",
+                        releaseDate = "2026-09-15",
                         size = "${existing.length() / 1024} KB",
                         zipUrl = "",
-                        changelog = "Downloaded update ready"
+                        changelog = "Downloaded update ready",
+                        channel = targetChannel.tag
                     ),
                     existing.absolutePath
                 )
@@ -159,32 +177,76 @@ object OtaEngine {
         return ""
     }
 
-    fun parseReleaseJson(jsonString: String): UpdateRelease? {
+    fun parseAnnouncementJson(jsonString: String): SystemAnnouncement? {
         if (jsonString.isBlank()) return null
         try {
             val root = JSONObject(jsonString)
-            val releaseObj = if (root.has("stable")) root.getJSONObject("stable") else root
+            if (root.has("announcement")) {
+                val ann = root.getJSONObject("announcement")
+                return SystemAnnouncement(
+                    title = ann.optString("title", "System Announcement"),
+                    date = ann.optString("date", ""),
+                    message = ann.optString("message", "")
+                )
+            }
+        } catch (_: Throwable) {
+            val titleMatch = Regex("\"title\"\\s*:\\s*\"([^\"]*)\"").find(jsonString)
+            val messageMatch = Regex("\"message\"\\s*:\\s*\"([^\"]*)\"").find(jsonString)
+            val dateMatch = Regex("\"date\"\\s*:\\s*\"([^\"]*)\"").find(jsonString)
+            if (titleMatch != null && messageMatch != null) {
+                return SystemAnnouncement(
+                    title = titleMatch.groupValues[1],
+                    date = dateMatch?.groupValues?.get(1).orEmpty(),
+                    message = messageMatch.groupValues[1]
+                )
+            }
+        }
+        return null
+    }
+
+    fun parseReleaseJson(jsonString: String, channel: ReleaseChannel = ReleaseChannel.STABLE): UpdateRelease? {
+        if (jsonString.isBlank()) return null
+        try {
+            val root = JSONObject(jsonString)
+            val releaseObj = if (root.has("channels")) {
+                val channels = root.getJSONObject("channels")
+                if (channel == ReleaseChannel.BETA && channels.has("beta")) {
+                    channels.getJSONObject("beta")
+                } else if (channels.has("stable")) {
+                    channels.getJSONObject("stable")
+                } else {
+                    root
+                }
+            } else if (root.has("stable")) {
+                root.getJSONObject("stable")
+            } else {
+                root
+            }
             return UpdateRelease(
                 version = releaseObj.optString("version", "2.1.0-BETA"),
                 versionCode = releaseObj.optInt("versionCode", 210),
                 releaseDate = releaseObj.optString("releaseDate", ""),
                 size = releaseObj.optString("size", ""),
                 zipUrl = releaseObj.optString("zipUrl", ""),
-                changelog = releaseObj.optString("changelog", "")
+                changelog = releaseObj.optString("changelog", ""),
+                channel = channel.tag
             )
         } catch (_: Throwable) {
-            return parseReleaseJsonFallback(jsonString)
+            return parseReleaseJsonFallback(jsonString, channel)
         }
     }
 
-    private fun parseReleaseJsonFallback(json: String): UpdateRelease? {
+    private fun parseReleaseJsonFallback(json: String, channel: ReleaseChannel): UpdateRelease? {
         return try {
+            val channelBlockMatch = Regex("\"${channel.tag}\"\\s*:\\s*\\{([^}]+)\\}").find(json)
+            val targetScope = channelBlockMatch?.groupValues?.get(1) ?: json
+
             fun extractString(key: String): String {
-                val match = Regex("\"$key\"\\s*:\\s*\"([^\"]*)\"").find(json)
+                val match = Regex("\"$key\"\\s*:\\s*\"([^\"]*)\"").find(targetScope)
                 return match?.groupValues?.get(1).orEmpty()
             }
             fun extractInt(key: String): Int {
-                val match = Regex("\"$key\"\\s*:\\s*(\\d+)").find(json)
+                val match = Regex("\"$key\"\\s*:\\s*(\\d+)").find(targetScope)
                 return match?.groupValues?.get(1)?.toIntOrNull() ?: 210
             }
 
@@ -201,7 +263,8 @@ object OtaEngine {
                 releaseDate = releaseDate,
                 size = size,
                 zipUrl = zipUrl,
-                changelog = changelog
+                changelog = changelog,
+                channel = channel.tag
             )
         } catch (_: Exception) {
             null

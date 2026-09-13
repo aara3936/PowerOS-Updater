@@ -126,24 +126,115 @@ class MainActivity : ComponentActivity() {
             when (item.itemId) {
                 R.id.menu_beta_section -> {
                     viewModel.onBetaSectionClicked()
+                    showBetaDialog()
                     true
                 }
                 R.id.menu_notifications -> {
                     viewModel.onNotificationsClicked()
+                    showNotificationsDialog()
                     true
                 }
                 R.id.menu_privacy_legal -> {
                     viewModel.onPrivacyLegalClicked()
+                    showPrivacyDialog()
                     true
                 }
                 R.id.menu_settings -> {
                     viewModel.onSettingsClicked()
+                    showSettingsDialog()
                     true
                 }
                 else -> false
             }
         }
         popup.show()
+    }
+
+    private fun showBetaDialog() {
+        val channels = arrayOf("Stable Channel (v2.1.0)", "Beta Channel (v2.1.0-BETA / Preview)")
+        val currentChannel = viewModel.uiState.value.currentChannel
+        val checkedItem = if (currentChannel == com.example.core.model.ReleaseChannel.STABLE) 0 else 1
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.menu_beta_section)
+            .setSingleChoiceItems(channels, checkedItem) { dialog, which ->
+                val newChannel = if (which == 0) com.example.core.model.ReleaseChannel.STABLE else com.example.core.model.ReleaseChannel.BETA
+                viewModel.switchReleaseChannel(newChannel, applicationContext)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setOnDismissListener {
+                viewModel.dismissDialog()
+            }
+            .show()
+    }
+
+    private fun showNotificationsDialog() {
+        val state = viewModel.uiState.value
+        val announcement = state.announcement
+        val message = if (announcement != null) {
+            "${announcement.title}\nDate: ${announcement.date}\n\n${announcement.message}"
+        } else {
+            "Power OS 2.1.0-BETA Reboot Notice:\n\n• Zero-lag MVVM Coroutines Engine established.\n• 15-Minute Background Auto-Check Worker active.\n• Direct GitHub Releases binary streaming active."
+        }
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.menu_notifications)
+            .setMessage(message)
+            .setPositiveButton("Dismiss") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setOnDismissListener {
+                viewModel.dismissDialog()
+            }
+            .show()
+    }
+
+    private fun showPrivacyDialog() {
+        val policyText = "Power OS Privacy Policy & Legal Declaration\n\n" +
+            "1. Zero Telemetry: No user data, analytics, or personal identifiers are collected, transmitted, or stored.\n\n" +
+            "2. Cryptographic Integrity: All update packages are cryptographically signed and SHA-256 verified prior to installation.\n\n" +
+            "3. Direct Distribution: Update binary streams originate directly from verified Power OS release servers.\n\n" +
+            "4. Open Source: Distributed under the Apache 2.0 License."
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.menu_privacy_legal)
+            .setMessage(policyText)
+            .setPositiveButton("Acknowledge") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setOnDismissListener {
+                viewModel.dismissDialog()
+            }
+            .show()
+    }
+
+    private fun showSettingsDialog() {
+        val state = viewModel.uiState.value
+        val items = arrayOf(
+            "Auto-Download over Wi-Fi only",
+            "Auto-Check frequency (Every 15 min)"
+        )
+        val checked = booleanArrayOf(state.autoDownloadWifiOnly, true)
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.menu_settings)
+            .setMultiChoiceItems(items, checked) { _, which, isChecked ->
+                checked[which] = isChecked
+            }
+            .setPositiveButton("Save") { dialog, _ ->
+                viewModel.updateSettings(checked[0], 15)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setOnDismissListener {
+                viewModel.dismissDialog()
+            }
+            .show()
     }
 
     private fun updateStatusBadge(

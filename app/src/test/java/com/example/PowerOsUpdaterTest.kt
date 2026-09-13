@@ -108,8 +108,67 @@ class PowerOsUpdaterTest {
         val viewModel = MainViewModel(repo, testDispatchers)
 
         viewModel.onBetaSectionClicked()
+        assertEquals(com.example.core.model.DialogType.BETA_SECTION, viewModel.uiState.value.activeDialog)
+
         viewModel.onNotificationsClicked()
+        assertEquals(com.example.core.model.DialogType.NOTIFICATIONS, viewModel.uiState.value.activeDialog)
+
         viewModel.onPrivacyLegalClicked()
+        assertEquals(com.example.core.model.DialogType.PRIVACY_LEGAL, viewModel.uiState.value.activeDialog)
+
         viewModel.onSettingsClicked()
+        assertEquals(com.example.core.model.DialogType.SETTINGS, viewModel.uiState.value.activeDialog)
+
+        viewModel.dismissDialog()
+        assertEquals(null, viewModel.uiState.value.activeDialog)
+
+        viewModel.updateSettings(wifiOnly = true, intervalMinutes = 15)
+        assertTrue(viewModel.uiState.value.autoDownloadWifiOnly)
+        assertEquals(15, viewModel.uiState.value.checkIntervalMinutes)
+    }
+
+    @Test
+    fun testDualChannelAndAnnouncementParsing() {
+        val json = """
+            {
+              "announcement": {
+                "title": "Welcome Fleet",
+                "date": "2026-09-13",
+                "message": "Power OS 2.1.0-BETA ecosystem live"
+              },
+              "channels": {
+                "stable": {
+                  "version": "2.1.0",
+                  "versionCode": 210,
+                  "releaseDate": "2026-09-13",
+                  "size": "15 MB",
+                  "zipUrl": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.1.0/PowerOS_v2.1.0.zip",
+                  "changelog": "Stable"
+                },
+                "beta": {
+                  "version": "2.2.0-BETA",
+                  "versionCode": 220,
+                  "releaseDate": "2026-09-15",
+                  "size": "16 MB",
+                  "zipUrl": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
+                  "changelog": "Beta Preview"
+                }
+              }
+            }
+        """.trimIndent()
+
+        val announcement = com.example.core.engine.OtaEngine.parseAnnouncementJson(json)
+        org.junit.Assert.assertNotNull(announcement)
+        assertEquals("Welcome Fleet", announcement?.title)
+
+        val stableRelease = com.example.core.engine.OtaEngine.parseReleaseJson(json, com.example.core.model.ReleaseChannel.STABLE)
+        org.junit.Assert.assertNotNull(stableRelease)
+        assertEquals(210, stableRelease?.versionCode)
+        assertEquals("2.1.0", stableRelease?.version)
+
+        val betaRelease = com.example.core.engine.OtaEngine.parseReleaseJson(json, com.example.core.model.ReleaseChannel.BETA)
+        org.junit.Assert.assertNotNull(betaRelease)
+        assertEquals(220, betaRelease?.versionCode)
+        assertEquals("2.2.0-BETA", betaRelease?.version)
     }
 }

@@ -21,3 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "PowerOSUpdater"
 include(":app")
+include(":admin")
+

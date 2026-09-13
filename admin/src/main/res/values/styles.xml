@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MyApplication" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.Admin" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:windowBackground">@color/midnight_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="colorPrimary">@color/neon_cyan</item>
-        <item name="colorSecondary">@color/neon_purple</item>
+        <item name="colorPrimary">@color/admin_accent</item>
+        <item name="colorSecondary">@color/neon_cyan</item>
     </style>
 </resources>

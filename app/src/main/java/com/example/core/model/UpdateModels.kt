@@ -9,7 +9,15 @@ data class UpdateRelease(
     val releaseDate: String,
     val size: String,
     val zipUrl: String,
-    val changelog: String
+    val changelog: String,
+    val channel: String = "stable"
+)
+
+@Keep
+data class SystemAnnouncement(
+    val title: String,
+    val date: String,
+    val message: String
 )
 
 @Keep
@@ -21,3 +29,10 @@ enum class SystemUpdateStatus {
     READY_TO_INSTALL,
     ERROR
 }
+
+@Keep
+enum class ReleaseChannel(val displayName: String, val tag: String) {
+    STABLE("Stable Channel", "stable"),
+    BETA("Beta Channel", "beta")
+}
+

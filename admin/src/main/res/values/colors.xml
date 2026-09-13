@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#ff000000</color>
+    <color name="white">#ffffffff</color>
+    <color name="midnight_bg">#0B0F19</color>
+    <color name="card_bg">#131B2E</color>
+    <color name="card_stroke">#1E293B</color>
+    <color name="slate_400">#94A3B8</color>
+    <color name="slate_500">#64748B</color>
+    <color name="admin_accent">#F59E0B</color>
+    <color name="neon_cyan">#06B6D4</color>
+    <color name="emerald_500">#10B981</color>
+</resources>

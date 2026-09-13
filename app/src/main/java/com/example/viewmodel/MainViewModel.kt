@@ -52,6 +52,17 @@ class MainViewModel(
                 }
             }
             launch {
+                OtaEngine.currentChannelFlow.collectLatest { channel ->
+                    _uiState.value = _uiState.value.copy(currentChannel = channel)
+                    _events.tryEmit(AppEngineEvent.ChannelChanged(channel))
+                }
+            }
+            launch {
+                OtaEngine.announcementFlow.collectLatest { ann ->
+                    _uiState.value = _uiState.value.copy(announcement = ann)
+                }
+            }
+            launch {
                 OtaEngine.latestReleaseFlow.collectLatest { release ->
                     _uiState.value = _uiState.value.copy(latestRelease = release)
                 }
@@ -118,20 +129,43 @@ class MainViewModel(
         _events.tryEmit(AppEngineEvent.LifecycleUpdated(stateName))
     }
 
+    fun openDialog(type: com.example.core.model.DialogType) {
+        _uiState.value = _uiState.value.copy(activeDialog = type)
+    }
+
+    fun dismissDialog() {
+        _uiState.value = _uiState.value.copy(activeDialog = null)
+    }
+
+    fun switchReleaseChannel(channel: com.example.core.model.ReleaseChannel, context: Context) {
+        OtaEngine.setReleaseChannel(channel)
+        _uiState.value = _uiState.value.copy(currentChannel = channel)
+        _userFeedback.tryEmit("Switched to ${channel.displayName}")
+        checkForUpdates(context)
+    }
+
+    fun updateSettings(wifiOnly: Boolean, intervalMinutes: Int) {
+        _uiState.value = _uiState.value.copy(
+            autoDownloadWifiOnly = wifiOnly,
+            checkIntervalMinutes = intervalMinutes
+        )
+        _userFeedback.tryEmit("Settings saved: Check every ${intervalMinutes}m")
+    }
+
     // Dropdown Menu Option Handlers (Strict Vertical Order)
     fun onBetaSectionClicked() {
-        _userFeedback.tryEmit("Beta Section: Channel set to Beta (v2.1.0-BETA)")
+        openDialog(com.example.core.model.DialogType.BETA_SECTION)
     }
 
     fun onNotificationsClicked() {
-        _userFeedback.tryEmit("Notifications & Announcements: No unread release notices")
+        openDialog(com.example.core.model.DialogType.NOTIFICATIONS)
     }
 
     fun onPrivacyLegalClicked() {
-        _userFeedback.tryEmit("Privacy Policy & Legal Notices: Local verification active")
+        openDialog(com.example.core.model.DialogType.PRIVACY_LEGAL)
     }
 
     fun onSettingsClicked() {
-        _userFeedback.tryEmit("Settings: Background Auto-Check (15 min interval) active")
+        openDialog(com.example.core.model.DialogType.SETTINGS)
     }
 }
