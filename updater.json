@@ -1,6 +1,19 @@
 {
-  "version": "2.2.0-BETA",
-  "version_code": 999,
+  "beta": {
+    "version": "4.09STABLEE1R3S09(EXO001) PK",
+    "version_code": 9999,
+    "download_url": "https://github.com/aara3936/PowerOS-Updater/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
+    "changelog": "Power OS 4.0 Fleet Release Sync"
+  },
+  "stable": {
+    "version": "4.09STABLEE1R3S09(EXO001) PK",
+    "version_code": 9999,
+    "download_url": "https://github.com/aara3936/PowerOS-Updater/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
+    "changelog": "Power OS 4.0 Fleet Release Sync"
+  },
+  "version": "4.09STABLEE1R3S09(EXO001) PK",
+  "version_code": 9999,
   "download_url": "https://github.com/aara3936/PowerOS-Updater/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
-  "changelog": "Power OS 2.2.0 Beta Update directly deployed via Admin Console."
+  "changelog": "Power OS 4.0 Fleet Release Sync"
 }
+
