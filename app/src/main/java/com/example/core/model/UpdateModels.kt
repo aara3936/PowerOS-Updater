@@ -10,7 +10,8 @@ data class UpdateRelease(
     val size: String,
     val zipUrl: String,
     val changelog: String,
-    val channel: String = "stable"
+    val channel: String = "stable",
+    val sha256: String = ""
 )
 
 @Keep

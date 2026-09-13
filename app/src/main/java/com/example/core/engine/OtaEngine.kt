@@ -7,6 +7,7 @@ import com.example.core.model.ReleaseChannel
 import com.example.core.model.SystemAnnouncement
 import com.example.core.model.SystemUpdateStatus
 import com.example.core.model.UpdateRelease
+import com.example.core.security.NativeSecurityBridge
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -155,6 +156,27 @@ object OtaEngine {
             }
 
             if (targetFile.exists() && targetFile.length() > 0) {
+                // Native Security Integrity & Header Validation
+                val isHeaderValid = NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)
+                if (!isHeaderValid) {
+                    targetFile.delete()
+                    _statusFlow.value = SystemUpdateStatus.ERROR
+                    return@withContext null
+                }
+
+                if (release.sha256.isNotBlank()) {
+                    val isSha256Valid = NativeSecurityBridge.verifyIntegrity(
+                        targetFile.absolutePath,
+                        release.sha256,
+                        dispatchers.io
+                    )
+                    if (!isSha256Valid) {
+                        targetFile.delete()
+                        _statusFlow.value = SystemUpdateStatus.ERROR
+                        return@withContext null
+                    }
+                }
+
                 _downloadProgressFlow.value = 100
                 _downloadedFileFlow.value = targetFile.absolutePath
                 _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
@@ -229,7 +251,8 @@ object OtaEngine {
                 size = releaseObj.optString("size", ""),
                 zipUrl = releaseObj.optString("zipUrl", ""),
                 changelog = releaseObj.optString("changelog", ""),
-                channel = channel.tag
+                channel = channel.tag,
+                sha256 = releaseObj.optString("sha256", "")
             )
         } catch (_: Throwable) {
             return parseReleaseJsonFallback(jsonString, channel)
@@ -256,6 +279,7 @@ object OtaEngine {
             val size = extractString("size")
             val zipUrl = extractString("zipUrl")
             val changelog = extractString("changelog")
+            val sha256 = extractString("sha256")
 
             UpdateRelease(
                 version = version,
@@ -264,7 +288,8 @@ object OtaEngine {
                 size = size,
                 zipUrl = zipUrl,
                 changelog = changelog,
-                channel = channel.tag
+                channel = channel.tag,
+                sha256 = sha256
             )
         } catch (_: Exception) {
             null

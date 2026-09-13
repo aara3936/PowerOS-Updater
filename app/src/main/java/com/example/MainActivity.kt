@@ -87,6 +87,9 @@ class MainActivity : ComponentActivity() {
         // Schedule periodic background checking via WorkManager (10-15 minute interval)
         OtaCheckWorker.schedulePeriodicCheck(applicationContext)
 
+        // Restore persisted state from local cache store to prevent any UI flickering
+        viewModel.restorePersistedState(applicationContext)
+
         // Initial background update check
         viewModel.checkForUpdates(applicationContext)
 
@@ -151,18 +154,26 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showBetaDialog() {
-        val channels = arrayOf("Stable Channel (v2.1.0)", "Beta Channel (v2.1.0-BETA / Preview)")
-        val currentChannel = viewModel.uiState.value.currentChannel
-        val checkedItem = if (currentChannel == com.example.core.model.ReleaseChannel.STABLE) 0 else 1
+        val view = layoutInflater.inflate(R.layout.dialog_beta_channel, null)
+        val switchBeta = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchBetaChannel)
+        val tvStatus = view.findViewById<TextView>(R.id.tvBetaChannelStatus)
+
+        val isBeta = viewModel.uiState.value.currentChannel == com.example.core.model.ReleaseChannel.BETA
+        switchBeta.isChecked = isBeta
+        tvStatus.text = if (isBeta) "Currently: Active (Preview Builds)" else "Currently: Inactive (Stable Channel)"
+        tvStatus.setTextColor(if (isBeta) getColor(R.color.neon_cyan) else getColor(R.color.slate_400))
+
+        switchBeta.setOnCheckedChangeListener { _, isChecked ->
+            val targetChannel = if (isChecked) com.example.core.model.ReleaseChannel.BETA else com.example.core.model.ReleaseChannel.STABLE
+            tvStatus.text = if (isChecked) "Currently: Active (Preview Builds)" else "Currently: Inactive (Stable Channel)"
+            tvStatus.setTextColor(if (isChecked) getColor(R.color.neon_cyan) else getColor(R.color.slate_400))
+            viewModel.switchReleaseChannel(targetChannel, applicationContext)
+            viewModel.saveCurrentState(applicationContext)
+        }
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.menu_beta_section)
-            .setSingleChoiceItems(channels, checkedItem) { dialog, which ->
-                val newChannel = if (which == 0) com.example.core.model.ReleaseChannel.STABLE else com.example.core.model.ReleaseChannel.BETA
-                viewModel.switchReleaseChannel(newChannel, applicationContext)
-                dialog.dismiss()
-            }
-            .setNegativeButton("Cancel") { dialog, _ ->
+            .setView(view)
+            .setPositiveButton("Done") { dialog, _ ->
                 dialog.dismiss()
             }
             .setOnDismissListener {
@@ -172,17 +183,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showNotificationsDialog() {
-        val state = viewModel.uiState.value
-        val announcement = state.announcement
-        val message = if (announcement != null) {
-            "${announcement.title}\nDate: ${announcement.date}\n\n${announcement.message}"
-        } else {
-            "Power OS 2.1.0-BETA Reboot Notice:\n\n• Zero-lag MVVM Coroutines Engine established.\n• 15-Minute Background Auto-Check Worker active.\n• Direct GitHub Releases binary streaming active."
+        val view = layoutInflater.inflate(R.layout.dialog_release_notes, null)
+        val tvAnnouncementTitle = view.findViewById<TextView>(R.id.tvAnnouncementTitle)
+        val tvAnnouncementDate = view.findViewById<TextView>(R.id.tvAnnouncementDate)
+        val tvAnnouncementBody = view.findViewById<TextView>(R.id.tvAnnouncementBody)
+
+        val announcement = viewModel.uiState.value.announcement
+        if (announcement != null) {
+            tvAnnouncementTitle.text = announcement.title
+            tvAnnouncementDate.text = "Date: ${announcement.date}"
+            tvAnnouncementBody.text = announcement.message
         }
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.menu_notifications)
-            .setMessage(message)
+            .setView(view)
             .setPositiveButton("Dismiss") { dialog, _ ->
                 dialog.dismiss()
             }
@@ -195,9 +209,10 @@ class MainActivity : ComponentActivity() {
     private fun showPrivacyDialog() {
         val policyText = "Power OS Privacy Policy & Legal Declaration\n\n" +
             "1. Zero Telemetry: No user data, analytics, or personal identifiers are collected, transmitted, or stored.\n\n" +
-            "2. Cryptographic Integrity: All update packages are cryptographically signed and SHA-256 verified prior to installation.\n\n" +
-            "3. Direct Distribution: Update binary streams originate directly from verified Power OS release servers.\n\n" +
-            "4. Open Source: Distributed under the Apache 2.0 License."
+            "2. Cryptographic Integrity: All update packages are verified via native C++17 SHA-256 validation prior to installation.\n\n" +
+            "3. Background Persistence: OTA updates execute securely with persistent Foreground Service lifecycle.\n\n" +
+            "4. Direct Distribution: Update binary streams originate directly from verified Power OS release servers.\n\n" +
+            "5. Open Source: Distributed under the Apache 2.0 License."
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle(R.string.menu_privacy_legal)
@@ -212,20 +227,19 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showSettingsDialog() {
+        val view = layoutInflater.inflate(R.layout.dialog_settings, null)
+        val switchWifi = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchWifiOnly)
+        val switchPeriodic = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchPeriodicCheck)
+
         val state = viewModel.uiState.value
-        val items = arrayOf(
-            "Auto-Download over Wi-Fi only",
-            "Auto-Check frequency (Every 15 min)"
-        )
-        val checked = booleanArrayOf(state.autoDownloadWifiOnly, true)
+        switchWifi.isChecked = state.autoDownloadWifiOnly
+        switchPeriodic.isChecked = true
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.menu_settings)
-            .setMultiChoiceItems(items, checked) { _, which, isChecked ->
-                checked[which] = isChecked
-            }
+            .setView(view)
             .setPositiveButton("Save") { dialog, _ ->
-                viewModel.updateSettings(checked[0], 15)
+                viewModel.updateSettings(switchWifi.isChecked, 15)
+                viewModel.saveCurrentState(applicationContext)
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel") { dialog, _ ->
@@ -312,6 +326,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         viewModel.updateLifecycleState("Paused")
+        viewModel.saveCurrentState(applicationContext)
     }
 
     override fun onDestroy() {

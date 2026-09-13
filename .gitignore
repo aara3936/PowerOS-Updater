@@ -5,6 +5,7 @@
 .DS_Store
 /build
 /app/build
+/admin/build
 /.build-outputs
 debug.keystore
 debug.keystore.base64
@@ -12,5 +13,6 @@ captures
 .externalNativeBuild
 .cxx
 
-# Ensure OTA_Updater.apk is included
+# Ensure binary outputs are included
 !OTA_Updater.apk
+!OTA_Admin.apk

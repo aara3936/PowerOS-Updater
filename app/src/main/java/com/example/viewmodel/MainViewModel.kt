@@ -9,7 +9,9 @@ import com.example.core.engine.OtaEngine
 import com.example.core.model.AppEngineEvent
 import com.example.core.model.AppEngineState
 import com.example.core.model.SystemUpdateStatus
+import com.example.core.persistence.OtaStateStore
 import com.example.core.repository.SystemCoreRepository
+import com.example.core.service.OtaDownloadService
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -83,6 +85,20 @@ class MainViewModel(
         }
     }
 
+    fun restorePersistedState(context: Context) {
+        viewModelScope.launch(dispatchers.main) {
+            val cachedState = OtaStateStore.loadState(context)
+            if (cachedState.latestRelease != null || cachedState.downloadedFilePath != null) {
+                _uiState.value = cachedState
+                OtaEngine.setReleaseChannel(cachedState.currentChannel)
+            }
+        }
+    }
+
+    fun saveCurrentState(context: Context) {
+        OtaStateStore.saveState(context, _uiState.value)
+    }
+
     fun initializeEngineCore() {
         viewModelScope.launch(dispatchers.main) {
             val initialState = repository.loadInitialCoreState()
@@ -101,11 +117,14 @@ class MainViewModel(
                 }
                 is OtaEngine.CheckResult.UpdateFound -> {
                     _userFeedback.tryEmit("New update available: ${result.release.version}")
+                    // Ensure continuous background download persistence via Foreground Service
+                    OtaDownloadService.startDownload(context, result.release)
                 }
                 is OtaEngine.CheckResult.UpdateReady -> {
                     _userFeedback.tryEmit("Update ${result.release.version} downloaded & ready to install")
                 }
             }
+            saveCurrentState(context)
         }
     }
 

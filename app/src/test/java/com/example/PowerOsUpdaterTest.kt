@@ -171,4 +171,28 @@ class PowerOsUpdaterTest {
         assertEquals(220, betaRelease?.versionCode)
         assertEquals("2.2.0-BETA", betaRelease?.version)
     }
+
+    @Test
+    fun testNativeSecurityVerification() = runTest(testDispatcher) {
+        val tempFile = java.io.File.createTempFile("test_payload", ".zip")
+        try {
+            // Write standard ZIP header (0x50, 0x4B, 0x03, 0x04)
+            tempFile.writeBytes(byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x00, 0x00))
+
+            val isHeaderValid = com.example.core.security.NativeSecurityBridge.verifyPayloadHeader(tempFile, testDispatcher)
+            assertTrue("Header must be identified as valid zip format", isHeaderValid)
+
+            val computedHash = com.example.core.security.NativeSecurityBridge.computeSha256(tempFile.absolutePath, testDispatcher)
+            assertTrue("SHA-256 hash must be non-empty", computedHash.isNotEmpty())
+
+            val matches = com.example.core.security.NativeSecurityBridge.verifyIntegrity(
+                tempFile.absolutePath,
+                computedHash,
+                testDispatcher
+            )
+            assertTrue("Integrity verification must pass with matching hash", matches)
+        } finally {
+            tempFile.delete()
+        }
+    }
 }
