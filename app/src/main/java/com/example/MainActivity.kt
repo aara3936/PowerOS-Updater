@@ -24,6 +24,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import android.content.Context
 import android.content.IntentFilter
 import android.widget.ProgressBar
+import android.widget.ImageView
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.dynamicanimation.animation.SpringForce
+import androidx.dynamicanimation.animation.DynamicAnimation
 import com.google.android.material.button.MaterialButton
 import com.example.core.receiver.OtaSyncReceiver
 import com.example.core.model.SystemUpdateStatus
@@ -65,6 +71,14 @@ class MainActivity : ComponentActivity() {
         val statusPill = findViewById<View>(R.id.statusPill)
         val indicatorDot = findViewById<View>(R.id.indicatorDot)
         val tvStatusText = findViewById<TextView>(R.id.tvStatusText)
+        
+        val ivBackgroundWallpaper = findViewById<ImageView>(R.id.ivBackgroundWallpaper)
+        val tvDeviceInfo = findViewById<TextView>(R.id.tvDeviceInfo)
+        val cardUpdateInfo = findViewById<View>(R.id.cardUpdateInfo)
+        val tvUpdateTitle = findViewById<TextView>(R.id.tvUpdateTitle)
+        val tvUpdateSize = findViewById<TextView>(R.id.tvUpdateSize)
+        val tvUpdateChangelog = findViewById<TextView>(R.id.tvUpdateChangelog)
+        
         val tvDownloadMetrics = findViewById<TextView>(R.id.tvDownloadMetrics)
         val progressBarDownload = findViewById<ProgressBar>(R.id.progressBarDownload)
         val btnPrimaryAction = findViewById<MaterialButton>(R.id.btnPrimaryAction)
@@ -100,6 +114,17 @@ class MainActivity : ComponentActivity() {
         // Detect display refresh rate for frame budgeting (60Hz / 90Hz / 120Hz)
         val refreshRate = detectDisplayRefreshRate()
         viewModel.updateDisplayMetrics(refreshRate)
+        
+        // Target Profile: OPPO A6x Optimization
+        val deviceModel = Build.MODEL
+        val socMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024)
+        tvDeviceInfo.text = "Target Profile: OPPO A6x\nRefresh Rate: ${refreshRate}Hz | Max Mem: ${socMemory}MB\nModel: $deviceModel"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ivBackgroundWallpaper.setRenderEffect(
+                RenderEffect.createBlurEffect(20f, 20f, Shader.TileMode.MIRROR)
+            )
+        }
 
         // Primary Action (Download or Install)
         btnPrimaryAction.setOnClickListener {
@@ -137,6 +162,12 @@ class MainActivity : ComponentActivity() {
                         // Update Live Download Metrics, Progress Bar, and Action Button
                         when (state.updateStatus) {
                             SystemUpdateStatus.DOWNLOADING -> {
+                                showUpdateCardWithSpring(cardUpdateInfo)
+                                state.latestRelease?.let { rel ->
+                                    tvUpdateTitle.text = "PowerOS ${rel.version}"
+                                    tvUpdateSize.text = "Size: ${rel.size}"
+                                    tvUpdateChangelog.text = "Changelog:\n${rel.changelog}"
+                                }
                                 tvDownloadMetrics.visibility = View.VISIBLE
                                 val resumePrefix = if (state.isDownloadResuming) "[Resuming] " else ""
                                 val speed = state.downloadSpeedText
@@ -151,6 +182,12 @@ class MainActivity : ComponentActivity() {
                                 btnPrimaryAction.isEnabled = false
                             }
                             SystemUpdateStatus.UPDATE_AVAILABLE -> {
+                                showUpdateCardWithSpring(cardUpdateInfo)
+                                state.latestRelease?.let { rel ->
+                                    tvUpdateTitle.text = "PowerOS ${rel.version}"
+                                    tvUpdateSize.text = "Size: ${rel.size}"
+                                    tvUpdateChangelog.text = "Changelog:\n${rel.changelog}"
+                                }
                                 tvDownloadMetrics.visibility = View.GONE
                                 progressBarDownload.visibility = View.GONE
                                 btnPrimaryAction.visibility = View.VISIBLE
@@ -158,6 +195,12 @@ class MainActivity : ComponentActivity() {
                                 btnPrimaryAction.isEnabled = true
                             }
                             SystemUpdateStatus.READY_TO_INSTALL -> {
+                                showUpdateCardWithSpring(cardUpdateInfo)
+                                state.latestRelease?.let { rel ->
+                                    tvUpdateTitle.text = "PowerOS ${rel.version}"
+                                    tvUpdateSize.text = "Size: ${rel.size}"
+                                    tvUpdateChangelog.text = "Changelog:\n${rel.changelog}"
+                                }
                                 tvDownloadMetrics.visibility = View.VISIBLE
                                 tvDownloadMetrics.text = "SHA-256 Verified • Ready to Install"
                                 progressBarDownload.visibility = View.VISIBLE
@@ -167,6 +210,7 @@ class MainActivity : ComponentActivity() {
                                 btnPrimaryAction.isEnabled = true
                             }
                             else -> {
+                                cardUpdateInfo.visibility = View.GONE
                                 tvDownloadMetrics.visibility = View.GONE
                                 progressBarDownload.visibility = View.GONE
                                 btnPrimaryAction.visibility = View.GONE
@@ -184,6 +228,26 @@ class MainActivity : ComponentActivity() {
         }
 
         viewModel.updateLifecycleState("Created")
+    }
+
+    private fun showUpdateCardWithSpring(view: View) {
+        if (view.visibility != View.VISIBLE) {
+            view.visibility = View.VISIBLE
+            view.translationY = 150f
+            view.alpha = 0f
+            
+            SpringAnimation(view, DynamicAnimation.TRANSLATION_Y, 0f).apply {
+                spring.stiffness = SpringForce.STIFFNESS_LOW
+                spring.dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
+                start()
+            }
+            
+            SpringAnimation(view, DynamicAnimation.ALPHA, 1f).apply {
+                spring.stiffness = SpringForce.STIFFNESS_LOW
+                spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
+                start()
+            }
+        }
     }
 
     private fun showOverflowMenu(anchor: View) {
