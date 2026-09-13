@@ -115,34 +115,50 @@ object OtaEngine {
 
                 val release = parseReleaseJson(manifestJson, targetChannel)
 
-                if (release != null && release.versionCode > CURRENT_VERSION_CODE) {
-                    _latestReleaseFlow.value = release
-
-                    // If already downloaded and verified, keep READY_TO_INSTALL
-                    val updatesDir = File(context.filesDir, "updates")
-                    val targetFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip")
-                    if (targetFile.exists() && targetFile.length() > 0 &&
-                        NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)) {
-                        _downloadProgressFlow.value = 100
-                        _downloadedFileFlow.value = targetFile.absolutePath
-                        _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
-                        return@withContext CheckResult.UpdateReady(release, targetFile.absolutePath)
-                    }
-
-                    // Auto-Trigger Download Pipeline: zero manual interaction required
-                    if (!isCurrentlyDownloading) {
-                        _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
-                        val downloadedPath = downloadUpdatePackage(context, release)
-                        if (downloadedPath != null) {
-                            _downloadedFileFlow.value = downloadedPath
+                if (release != null) {
+                    if (release.freeze || release.versionCode < CURRENT_VERSION_CODE) {
+                        isCurrentlyDownloading = false
+                        _statusFlow.value = SystemUpdateStatus.UP_TO_DATE
+                        _latestReleaseFlow.value = null
+                        _downloadProgressFlow.value = 0
+                        _downloadSpeedFlow.value = ""
+                        _downloadEtaFlow.value = ""
+                        File(context.filesDir, "updates").deleteRecursively()
+                        return@withContext CheckResult.UpToDate
+                    } else if (release.versionCode > CURRENT_VERSION_CODE) {
+                        _latestReleaseFlow.value = release
+    
+                        // If already downloaded and verified, keep READY_TO_INSTALL
+                        val updatesDir = File(context.filesDir, "updates")
+                        val targetFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip")
+                        if (targetFile.exists() && targetFile.length() > 0 &&
+                            NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)) {
+                            _downloadProgressFlow.value = 100
+                            _downloadedFileFlow.value = targetFile.absolutePath
                             _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
-                            return@withContext CheckResult.UpdateReady(release, downloadedPath)
-                        } else {
+                            return@withContext CheckResult.UpdateReady(release, targetFile.absolutePath)
+                        }
+    
+                        // Auto-Trigger Download Pipeline: zero manual interaction required
+                        if (!isCurrentlyDownloading) {
                             _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
+                            val downloadedPath = downloadUpdatePackage(context, release)
+                            if (downloadedPath != null) {
+                                _downloadedFileFlow.value = downloadedPath
+                                _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
+                                return@withContext CheckResult.UpdateReady(release, downloadedPath)
+                            } else {
+                                _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
+                                return@withContext CheckResult.UpdateFound(release)
+                            }
+                        } else {
                             return@withContext CheckResult.UpdateFound(release)
                         }
                     } else {
-                        return@withContext CheckResult.UpdateFound(release)
+                        if (!isCurrentlyDownloading && _statusFlow.value != SystemUpdateStatus.READY_TO_INSTALL) {
+                            _statusFlow.value = SystemUpdateStatus.UP_TO_DATE
+                        }
+                        return@withContext CheckResult.UpToDate
                     }
                 } else {
                     if (!isCurrentlyDownloading && _statusFlow.value != SystemUpdateStatus.READY_TO_INSTALL) {
@@ -357,7 +373,10 @@ object OtaEngine {
                                         } else {
                                             String.format(Locale.US, "%.1f KB/s", speedBps / 1024.0)
                                         }
-                                        _downloadSpeedFlow.value = speedStr
+                                        val currentMb = currentBytes / (1024.0 * 1024.0)
+                                        val totalMb = totalLength / (1024.0 * 1024.0)
+                                        val progressStr = String.format(Locale.US, "%.1f MB / %.1f MB", currentMb, totalMb)
+                                        _downloadSpeedFlow.value = "$speedStr  •  $progressStr"
 
                                         if (totalLength > 0 && speedBps > 0) {
                                             val remainingBytes = (totalLength - currentBytes).coerceAtLeast(0)
@@ -490,7 +509,8 @@ object OtaEngine {
                 zipUrl = releaseObj.optString("zipUrl", ""),
                 changelog = releaseObj.optString("changelog", ""),
                 channel = channel.tag,
-                sha256 = releaseObj.optString("sha256", "")
+                sha256 = releaseObj.optString("sha256", ""),
+                freeze = releaseObj.optBoolean("freeze", false)
             )
         } catch (_: Throwable) {
             return parseReleaseJsonFallback(jsonString, channel)
@@ -518,6 +538,7 @@ object OtaEngine {
             val zipUrl = extractString("zipUrl")
             val changelog = extractString("changelog")
             val sha256 = extractString("sha256")
+            val freeze = Regex("\"freeze\"\\s*:\\s*(true|false)").find(targetScope)?.groupValues?.get(1)?.toBoolean() ?: false
 
             UpdateRelease(
                 version = version,
@@ -527,7 +548,8 @@ object OtaEngine {
                 zipUrl = zipUrl,
                 changelog = changelog,
                 channel = channel.tag,
-                sha256 = sha256
+                sha256 = sha256,
+                freeze = freeze
             )
         } catch (_: Exception) {
             null

@@ -234,5 +234,71 @@ class AdminActivity : ComponentActivity() {
                 }
             }
         }
+
+        val btnEmergencyRollback = findViewById<Button>(R.id.btnEmergencyRollback)
+        btnEmergencyRollback.setOnClickListener {
+            val repo = etGithubRepo.text.toString().trim().ifEmpty { "aara3936/PowerOS-OTA" }
+            val token = etGithubToken.text.toString().trim()
+            val isBeta = rbBeta.isChecked
+            val channel = if (isBeta) "beta" else "stable"
+            
+            lifecycleScope.launch {
+                val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+                val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+                
+                tvAdminStatus.text = "Executing Emergency Rollback on GitHub updater.json..."
+
+                // 1. Direct GitHub REST API Pipeline
+                val gitResult = GithubApiEngine.pushManifestUpdate(
+                    repo = repo,
+                    token = token.ifEmpty { null },
+                    commitMessage = "rollback($channel): Emergency Freeze [Power OS Admin]"
+                ) { rootJson ->
+                    val channelsObj = rootJson.optJSONObject("channels") ?: JSONObject().also {
+                        rootJson.put("channels", it)
+                    }
+                    val relObj = JSONObject().apply {
+                        put("version", "2.0.0-ROLLBACK")
+                        put("versionCode", 200)
+                        put("releaseDate", isoDate)
+                        put("size", "0 MB")
+                        put("zipUrl", "")
+                        put("sha256", "")
+                        put("changelog", "EMERGENCY ROLLBACK & FREEZE INITIATED")
+                        put("freeze", true)
+                    }
+                    channelsObj.put(channel, relObj)
+                }
+
+                // 2. Real-Time Inter-App Fleet Broadcast Dispatch
+                val syncIntent = Intent("com.poweros.updater.ACTION_OTA_SYNC").apply {
+                    putExtra("extra_type", "RELEASE")
+                    putExtra("extra_channel", channel)
+                    putExtra("extra_version", "2.0.0-ROLLBACK")
+                    putExtra("extra_code", 200)
+                    putExtra("extra_zip_url", "")
+                    putExtra("extra_sha256", "")
+                    putExtra("extra_date", timestamp)
+                    putExtra("extra_changelog", "EMERGENCY ROLLBACK & FREEZE INITIATED")
+                }
+                sendBroadcast(syncIntent)
+
+                // 3. Instant UI Feedback
+                when (gitResult) {
+                    is GithubApiEngine.PushResult.Success -> {
+                        tvAdminStatus.text = "Emergency Rollback: SUCCESS (HTTP ${gitResult.statusCode})\n" +
+                                "Commit: ${gitResult.commitSha.take(8)}\n" +
+                                "Target: FROZEN on ${channel.uppercase(Locale.US)}\n" +
+                                "Time: $timestamp"
+                        Toast.makeText(this@AdminActivity, "Rollback committed & broadcast!", Toast.LENGTH_SHORT).show()
+                    }
+                    is GithubApiEngine.PushResult.Failure -> {
+                        tvAdminStatus.text = "Emergency Rollback: ${gitResult.errorMessage}\n" +
+                                "Local Fleet Broadcast: ACTIVE & DISPATCHED"
+                        Toast.makeText(this@AdminActivity, "Broadcasted Rollback Locally", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 }

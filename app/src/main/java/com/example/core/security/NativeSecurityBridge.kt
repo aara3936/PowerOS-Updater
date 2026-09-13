@@ -13,27 +13,15 @@ object NativeSecurityBridge {
     private var isNativeLoaded = false
 
     private fun logInfo(msg: String) {
-        try {
-            Log.i(TAG, msg)
-        } catch (_: Throwable) {
-            println("[$TAG] INFO: $msg")
-        }
+        // Logging stripped for production
     }
 
     private fun logWarn(msg: String) {
-        try {
-            Log.w(TAG, msg)
-        } catch (_: Throwable) {
-            println("[$TAG] WARN: $msg")
-        }
+        // Logging stripped for production
     }
 
     private fun logError(msg: String, tr: Throwable? = null) {
-        try {
-            Log.e(TAG, msg, tr)
-        } catch (_: Throwable) {
-            println("[$TAG] ERROR: $msg ${tr?.message.orEmpty()}")
-        }
+        // Logging stripped for production
     }
 
     init {

@@ -259,6 +259,15 @@
                     android:text="@string/btn_trigger_ota_update"
                     android:textAllCaps="false"
                     app:backgroundTint="@color/neon_cyan" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEmergencyRollback"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:text="Emergency Rollback &amp; Freeze"
+                    android:textAllCaps="false"
+                    app:backgroundTint="#EF4444" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

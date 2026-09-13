@@ -47,7 +47,7 @@ class OtaSyncReceiver : BroadcastReceiver() {
                     val announcement = SystemAnnouncement(title = title, date = date, message = message)
                     OtaEngine.setLiveAnnouncement(announcement)
                     OtaStateStore.saveAnnouncement(context, announcement)
-                    Log.i(TAG, "Real-time announcement received from OTA_Admin: $title")
+                    // Logging stripped for production
                 }
 
                 TYPE_RELEASE -> {
@@ -87,13 +87,16 @@ class OtaSyncReceiver : BroadcastReceiver() {
                     OtaEngine.setLiveRelease(channel, release)
                     if (versionCode > OtaEngine.CURRENT_VERSION_CODE) {
                         OtaEngine.setStatus(SystemUpdateStatus.UPDATE_AVAILABLE)
+                    } else if (versionCode < OtaEngine.CURRENT_VERSION_CODE || changelog.contains("ROLLBACK")) {
+                        OtaEngine.setStatus(SystemUpdateStatus.UP_TO_DATE)
+                        java.io.File(context.filesDir, "updates").deleteRecursively()
                     }
                     OtaStateStore.saveLatestRelease(context, release)
-                    Log.i(TAG, "Real-time release payload received from OTA_Admin: $version ($versionCode)")
+                    // Logging stripped for production
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse real-time sync intent", e)
+            // Error logs stripped for production
         }
     }
 }

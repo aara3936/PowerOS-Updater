@@ -8,8 +8,7 @@
 #include <android/log.h>
 
 #define LOG_TAG "NativeSecurity"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+// Logging stripped for production
 
 namespace {
 
@@ -186,7 +185,7 @@ Java_com_example_core_security_NativeSecurityBridge_nativeComputeSha256(
     env->ReleaseStringUTFChars(jFilePath, pathStr);
 
     if (!file.is_open()) {
-        LOGE("Failed to open file for SHA-256 calculation");
+        // Error logs stripped for production
         return env->NewStringUTF("");
     }
 
