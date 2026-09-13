@@ -1,16 +1,8 @@
 {
-  "name": "Power OS",
-  "description": "Power OS OTA Updater v2.1-BETA with Liquid Glass UI, secure developer portal, real foreground download engine, and native core.",
+  "name": "Power OS Updater",
+  "description": "Power OS OTA Updater v2.1.0-BETA minimal foundation.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"],
   "version": "2.1.0-BETA",
-  "versionCode": 210,
-  "stable": {
-    "version": "3.A.7.0.102GL",
-    "versionCode": 3790,
-    "releaseDate": "2026-09-03",
-    "size": "15 MB",
-    "zipUrl": "https://github.com/aara3936/Oppo-A6X-OTA/releases/download/v3.7.90/PowerOS_v3.7.90_OppoA6X.zip",
-    "changelog": "Power OS V3.7 Stable Release:\n• Full transition to Liquid Glass UI architecture.\n• Improved CPU & GPU scheduling for Oppo A6X.\n• Enhanced system stability and adaptive smooth refresh rate."
-  }
+  "versionCode": 210
 }

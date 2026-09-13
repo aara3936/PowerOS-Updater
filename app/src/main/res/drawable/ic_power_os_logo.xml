@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Ambient backdrop disc -->
+    <path
+        android:pathData="M60,60m-56,0a56,56 0 1,0 112,0a56,56 0 1,0 -112,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="60"
+                android:centerY="60"
+                android:gradientRadius="56"
+                android:startColor="#1E293B"
+                android:endColor="#0B1120" />
+        </aapt:attr>
+    </path>
+
+    <!-- Glowing subtle ring -->
+    <path
+        android:pathData="M60,60m-54,0a54,54 0 1,0 108,0a54,54 0 1,0 -108,0"
+        android:strokeWidth="1.5"
+        android:strokeColor="#2600F5FF" />
+
+    <!-- Glowing neon P outer halo -->
+    <path
+        android:pathData="M42,32 L68,32 C80,32 88,40 88,51 C88,62 80,70 68,70 L55,70 L55,90 L42,90 Z"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:strokeColor="#3300F5FF" />
+
+    <!-- Glowing modern neon P emblem -->
+    <path
+        android:pathData="M42,32 L68,32 C80,32 88,40 88,51 C88,62 80,70 68,70 L55,70 L55,90 L42,90 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="42"
+                android:startY="32"
+                android:endX="88"
+                android:endY="90"
+                android:startColor="#00F5FF"
+                android:endColor="#0066FF" />
+        </aapt:attr>
+    </path>
+
+    <!-- Inner cutout of P with midnight fill -->
+    <path
+        android:pathData="M55,45 L66,45 C70,45 74,47.5 74,51 C74,54.5 70,57 66,57 L55,57 Z"
+        android:fillColor="#0B1120" />
+
+    <!-- Top highlight stroke -->
+    <path
+        android:pathData="M42,32 L68,32 C80,32 88,40 88,51"
+        android:strokeWidth="2"
+        android:strokeColor="#F0FFFFFF" />
+</vector>

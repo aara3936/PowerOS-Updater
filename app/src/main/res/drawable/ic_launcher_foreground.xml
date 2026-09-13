@@ -6,13 +6,14 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer Cyan Glow Halo -->
+    <!-- Soft outer glow of P emblem -->
     <path
         android:pathData="M38,28 L62,28 C73,28 80,35 80,45 C80,55 73,62 62,62 L50,62 L50,80 L38,80 Z"
-        android:strokeWidth="4"
-        android:strokeColor="#4000E5FF" />
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:strokeColor="#3300F5FF" />
 
-    <!-- Frosted Neon 'P' Solid Base with Cyan to Blue Gradient -->
+    <!-- Glowing modern neon 'P' body -->
     <path
         android:pathData="M38,28 L62,28 C73,28 80,35 80,45 C80,55 73,62 62,62 L50,62 L50,80 L38,80 Z">
         <aapt:attr name="android:fillColor">
@@ -22,19 +23,19 @@
                 android:startY="28"
                 android:endX="80"
                 android:endY="80"
-                android:startColor="#00E5FF"
-                android:endColor="#0077FF" />
+                android:startColor="#00F5FF"
+                android:endColor="#0066FF" />
         </aapt:attr>
     </path>
 
-    <!-- Inner 'P' Cutout with Dark Glass Fill -->
+    <!-- Inner cutout of P with midnight background color -->
     <path
-        android:pathData="M50,40 L60,40 C64,40 67,42 67,45 C67,48 64,50 60,50 L50,50 Z"
-        android:fillColor="#09101F" />
+        android:pathData="M50,40 L60,40 C63.5,40 66.5,42 66.5,45 C66.5,48 63.5,50 60,50 L50,50 Z"
+        android:fillColor="#0F172A" />
 
-    <!-- Glass Refraction Edge Highlight -->
+    <!-- Sharp glass/neon highlight edge -->
     <path
         android:pathData="M38,28 L62,28 C73,28 80,35 80,45"
-        android:strokeWidth="1.5"
-        android:strokeColor="#CCFFFFFF" />
+        android:strokeWidth="1.8"
+        android:strokeColor="#EEFFFFFF" />
 </vector>
