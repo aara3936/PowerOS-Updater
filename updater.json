@@ -1,8 +1,8 @@
 {
   "announcement": {
-    "title": "Welcome to Power OS 2.1.0-BETA",
+    "title": "Power OS V2.1.0-BETA Fleet Update",
     "date": "2026-09-13",
-    "message": "Power OS Updater has been rebooted with a lag-free MVVM coroutines engine, automated background workers, and Dual-App Ecosystem support."
+    "message": "System reboot active. Zero-lag MVVM engine deployed."
   },
   "channels": {
     "stable": {
@@ -10,7 +10,7 @@
       "versionCode": 210,
       "releaseDate": "2026-09-13",
       "size": "15 MB",
-      "zipUrl": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.1.0/PowerOS_v2.1.0.zip",
+      "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v2.1.0\/PowerOS_v2.1.0.zip",
       "sha256": "4a5323c21a1662fb52cf24bb561dffcfd5cb911075f9ee7dcf82d1c6757b322a",
       "changelog": "Power OS 2.1.0 Stable:\n• Clean MVVM architecture reboot\n• Zero-overdraw render pipeline"
     },
@@ -19,7 +19,7 @@
       "versionCode": 220,
       "releaseDate": "2026-09-15",
       "size": "16 MB",
-      "zipUrl": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
+      "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
       "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
       "changelog": "Power OS 2.2.0-BETA:\n• New background download engine\n• Real-time channel switching\n• Remote push announcements"
     }
@@ -29,8 +29,7 @@
     "versionCode": 210,
     "releaseDate": "2026-09-13",
     "size": "15 MB",
-    "zipUrl": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.1.0/PowerOS_v2.1.0.zip",
+    "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v2.1.0\/PowerOS_v2.1.0.zip",
     "changelog": "Power OS V2.1.0-BETA:\n• Complete purge and clean minimal foundation reboot.\n• High-resolution vector branding."
   }
 }
-
