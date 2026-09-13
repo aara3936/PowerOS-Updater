@@ -100,6 +100,38 @@
 
         </LinearLayout>
 
+        <!-- Live Download Metrics (Speed, ETA & Resume state) -->
+        <TextView
+            android:id="@+id/tvDownloadMetrics"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="#38BDF8"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <!-- Download Progress Bar -->
+        <ProgressBar
+            android:id="@+id/progressBarDownload"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="240dp"
+            android:layout_height="6dp"
+            android:layout_marginTop="10dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#38BDF8"
+            android:visibility="gone" />
+
+        <!-- Primary Action Button (Download / Install) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPrimaryAction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Download Update"
+            android:textColor="#0F172A"
+            android:visibility="gone" />
+
     </LinearLayout>
 
 </LinearLayout>

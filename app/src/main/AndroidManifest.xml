@@ -20,6 +20,14 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <receiver
+            android:name="com.example.core.receiver.OtaSyncReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.poweros.updater.ACTION_OTA_SYNC" />
+            </intent-filter>
+        </receiver>
         <activity
             android:name="com.example.MainActivity"
             android:exported="true"

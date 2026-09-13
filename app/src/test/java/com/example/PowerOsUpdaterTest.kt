@@ -195,4 +195,47 @@ class PowerOsUpdaterTest {
             tempFile.delete()
         }
     }
+
+    @Test
+    fun testRealtimeSyncFlow() = runTest(testDispatcher) {
+        val testAnnouncement = com.example.core.model.SystemAnnouncement(
+            title = "Fleet Test Alert",
+            date = "2026-09-15",
+            message = "Admin dispatched live test."
+        )
+        com.example.core.engine.OtaEngine.setLiveAnnouncement(testAnnouncement)
+        assertEquals("Fleet Test Alert", com.example.core.engine.OtaEngine.announcementFlow.value?.title)
+
+        val testRelease = com.example.core.model.UpdateRelease(
+            version = "2.3.0-BETA",
+            versionCode = 230,
+            releaseDate = "2026-09-20",
+            size = "32 MB",
+            zipUrl = "https://example.com/poweros_230.zip",
+            changelog = "Real-time sync test release",
+            channel = "beta",
+            sha256 = "test_hash"
+        )
+        com.example.core.engine.OtaEngine.setLiveRelease(com.example.core.model.ReleaseChannel.BETA, testRelease)
+        assertEquals(230, com.example.core.engine.OtaEngine.latestReleaseFlow.value?.versionCode)
+        assertEquals(com.example.core.model.SystemUpdateStatus.UPDATE_AVAILABLE, com.example.core.engine.OtaEngine.statusFlow.value)
+    }
+
+    @Test
+    fun testDownloadMetricsStateFlow() = runTest(testDispatcher) {
+        val speed = "2.45 MB/s"
+        val eta = "18s"
+        val event = com.example.core.model.AppEngineEvent.DownloadMetricsUpdated(speed, eta)
+        assertEquals(speed, event.speedText)
+        assertEquals(eta, event.etaText)
+
+        val state = com.example.core.model.AppEngineState(
+            downloadSpeedText = speed,
+            downloadEtaText = eta,
+            isDownloadResuming = true
+        )
+        assertTrue(state.isDownloadResuming)
+        assertEquals("2.45 MB/s", state.downloadSpeedText)
+        assertEquals("18s", state.downloadEtaText)
+    }
 }

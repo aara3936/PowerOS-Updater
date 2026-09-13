@@ -124,4 +124,31 @@ object OtaStateStore {
             announcement = announcement
         )
     }
+
+    fun saveAnnouncement(context: Context, ann: SystemAnnouncement) {
+        val prefs = getPrefs(context)
+        prefs.edit().apply {
+            putString(KEY_ANN_TITLE, ann.title)
+            putString(KEY_ANN_DATE, ann.date)
+            putString(KEY_ANN_MSG, ann.message)
+            apply()
+        }
+    }
+
+    fun saveLatestRelease(context: Context, release: UpdateRelease) {
+        val prefs = getPrefs(context)
+        prefs.edit().apply {
+            putString(KEY_VER_NAME, release.version)
+            putInt(KEY_VER_CODE, release.versionCode)
+            putString(KEY_VER_DATE, release.releaseDate)
+            putString(KEY_VER_SIZE, release.size)
+            putString(KEY_VER_URL, release.zipUrl)
+            putString(KEY_VER_CHANGELOG, release.changelog)
+            putString(KEY_VER_SHA256, release.sha256)
+            if (release.versionCode > 210) {
+                putString(KEY_STATUS, SystemUpdateStatus.UPDATE_AVAILABLE.name)
+            }
+            apply()
+        }
+    }
 }

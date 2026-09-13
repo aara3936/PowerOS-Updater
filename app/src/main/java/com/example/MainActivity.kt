@@ -21,6 +21,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import android.content.Context
+import android.content.IntentFilter
+import android.widget.ProgressBar
+import com.google.android.material.button.MaterialButton
+import com.example.core.receiver.OtaSyncReceiver
 import com.example.core.model.SystemUpdateStatus
 import com.example.core.worker.OtaCheckWorker
 import com.example.viewmodel.MainViewModel
@@ -30,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
     private var pulseAnimator: ObjectAnimator? = null
+    private val syncReceiver = OtaSyncReceiver()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +49,14 @@ class MainActivity : ComponentActivity() {
 
         setContentView(R.layout.activity_main)
 
+        // Dynamic registration for instant inter-app synchronization with OTA_Admin
+        val syncFilter = IntentFilter(OtaSyncReceiver.ACTION_OTA_SYNC)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(syncReceiver, syncFilter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(syncReceiver, syncFilter)
+        }
+
         val mainContentRoot = findViewById<View>(R.id.mainContentRoot)
         val topHeaderBar = findViewById<View>(R.id.topHeaderBar)
         val btnOverflowMenu = findViewById<ImageButton>(R.id.btnOverflowMenu)
@@ -51,6 +65,9 @@ class MainActivity : ComponentActivity() {
         val statusPill = findViewById<View>(R.id.statusPill)
         val indicatorDot = findViewById<View>(R.id.indicatorDot)
         val tvStatusText = findViewById<TextView>(R.id.tvStatusText)
+        val tvDownloadMetrics = findViewById<TextView>(R.id.tvDownloadMetrics)
+        val progressBarDownload = findViewById<ProgressBar>(R.id.progressBarDownload)
+        val btnPrimaryAction = findViewById<MaterialButton>(R.id.btnPrimaryAction)
 
         // Modern WindowInsetsCompat handling for seamless edge-to-edge support
         ViewCompat.setOnApplyWindowInsetsListener(mainContentRoot) { _, insets ->
@@ -84,6 +101,11 @@ class MainActivity : ComponentActivity() {
         val refreshRate = detectDisplayRefreshRate()
         viewModel.updateDisplayMetrics(refreshRate)
 
+        // Primary Action (Download or Install)
+        btnPrimaryAction.setOnClickListener {
+            viewModel.triggerDownloadOrInstall(applicationContext)
+        }
+
         // Schedule periodic background checking via WorkManager (10-15 minute interval)
         OtaCheckWorker.schedulePeriodicCheck(applicationContext)
 
@@ -92,6 +114,9 @@ class MainActivity : ComponentActivity() {
 
         // Initial background update check
         viewModel.checkForUpdates(applicationContext)
+
+        // Start continuous 15-second real-time sync polling loop
+        viewModel.startRealtimePolling(applicationContext)
 
         // Lifecycle-safe StateFlow collection
         lifecycleScope.launch {
@@ -108,6 +133,45 @@ class MainActivity : ComponentActivity() {
 
                         // Update Live Status Badge
                         updateStatusBadge(state.updateStatus, state.downloadProgress, indicatorDot, tvStatusText)
+
+                        // Update Live Download Metrics, Progress Bar, and Action Button
+                        when (state.updateStatus) {
+                            SystemUpdateStatus.DOWNLOADING -> {
+                                tvDownloadMetrics.visibility = View.VISIBLE
+                                val resumePrefix = if (state.isDownloadResuming) "[Resuming] " else ""
+                                val speed = state.downloadSpeedText
+                                val eta = state.downloadEtaText
+                                tvDownloadMetrics.text = "$resumePrefix$speed  $eta".trim()
+
+                                progressBarDownload.visibility = View.VISIBLE
+                                progressBarDownload.progress = state.downloadProgress
+
+                                btnPrimaryAction.visibility = View.VISIBLE
+                                btnPrimaryAction.text = "Downloading (${state.downloadProgress}%)"
+                                btnPrimaryAction.isEnabled = false
+                            }
+                            SystemUpdateStatus.UPDATE_AVAILABLE -> {
+                                tvDownloadMetrics.visibility = View.GONE
+                                progressBarDownload.visibility = View.GONE
+                                btnPrimaryAction.visibility = View.VISIBLE
+                                btnPrimaryAction.text = "Download Update"
+                                btnPrimaryAction.isEnabled = true
+                            }
+                            SystemUpdateStatus.READY_TO_INSTALL -> {
+                                tvDownloadMetrics.visibility = View.VISIBLE
+                                tvDownloadMetrics.text = "SHA-256 Verified • Ready to Install"
+                                progressBarDownload.visibility = View.VISIBLE
+                                progressBarDownload.progress = 100
+                                btnPrimaryAction.visibility = View.VISIBLE
+                                btnPrimaryAction.text = "Install Update"
+                                btnPrimaryAction.isEnabled = true
+                            }
+                            else -> {
+                                tvDownloadMetrics.visibility = View.GONE
+                                progressBarDownload.visibility = View.GONE
+                                btnPrimaryAction.visibility = View.GONE
+                            }
+                        }
                     }
                 }
 
@@ -333,6 +397,11 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         pulseAnimator?.cancel()
         pulseAnimator = null
+        try {
+            unregisterReceiver(syncReceiver)
+        } catch (_: Exception) {
+            // Receiver might not have been registered or already unregistered
+        }
     }
 
     private fun detectDisplayRefreshRate(): Float {

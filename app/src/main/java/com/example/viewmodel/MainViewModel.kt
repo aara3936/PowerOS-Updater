@@ -82,6 +82,48 @@ class MainViewModel(
                     }
                 }
             }
+            launch {
+                OtaEngine.downloadSpeedFlow.collectLatest { speed ->
+                    _uiState.value = _uiState.value.copy(downloadSpeedText = speed)
+                    _events.tryEmit(AppEngineEvent.DownloadMetricsUpdated(speed, _uiState.value.downloadEtaText))
+                }
+            }
+            launch {
+                OtaEngine.downloadEtaFlow.collectLatest { eta ->
+                    _uiState.value = _uiState.value.copy(downloadEtaText = eta)
+                    _events.tryEmit(AppEngineEvent.DownloadMetricsUpdated(_uiState.value.downloadSpeedText, eta))
+                }
+            }
+            launch {
+                OtaEngine.isResumingFlow.collectLatest { isResuming ->
+                    _uiState.value = _uiState.value.copy(isDownloadResuming = isResuming)
+                }
+            }
+        }
+    }
+
+    /**
+     * Continuous 15-second real-time sync polling loop.
+     * Guaranteed asynchronous execution on Dispatchers.IO.
+     */
+    fun startRealtimePolling(context: Context) {
+        viewModelScope.launch(dispatchers.io) {
+            while (true) {
+                kotlinx.coroutines.delay(15000L)
+                OtaEngine.checkForUpdates(context)
+            }
+        }
+    }
+
+    fun triggerDownloadOrInstall(context: Context) {
+        val state = _uiState.value
+        val release = state.latestRelease
+        if (state.updateStatus == SystemUpdateStatus.UPDATE_AVAILABLE && release != null) {
+            OtaDownloadService.startDownload(context, release)
+        } else if (state.updateStatus == SystemUpdateStatus.READY_TO_INSTALL) {
+            _userFeedback.tryEmit("System package ready for installation")
+        } else {
+            checkForUpdates(context)
         }
     }
 

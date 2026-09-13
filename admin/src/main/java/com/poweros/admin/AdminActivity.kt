@@ -1,5 +1,6 @@
 package com.poweros.admin
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -16,7 +17,10 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -28,6 +32,7 @@ class AdminActivity : ComponentActivity() {
     private val httpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
             .build()
     }
 
@@ -84,7 +89,17 @@ class AdminActivity : ComponentActivity() {
                     put("targetPackage", "com.poweros.updater")
                 }
 
-                tvAdminStatus.text = "Announcement Dispatched:\n\"$title\"\nTime: $timestamp\nFleet: com.poweros.updater"
+                // Dispatch Real-Time Sync Broadcast directly to OTA_Updater fleet
+                val syncIntent = Intent("com.poweros.updater.ACTION_OTA_SYNC").apply {
+                    putExtra("extra_type", "ANNOUNCEMENT")
+                    putExtra("extra_title", title)
+                    putExtra("extra_message", message)
+                    putExtra("extra_date", timestamp)
+                    putExtra("extra_payload_json", payload.toString())
+                }
+                sendBroadcast(syncIntent)
+
+                tvAdminStatus.text = "Announcement Dispatched:\n\"$title\"\nTime: $timestamp\nReal-time broadcast dispatched to OTA_Updater fleet"
                 Toast.makeText(this@AdminActivity, "Announcement broadcast to fleet!", Toast.LENGTH_SHORT).show()
             }
         }
@@ -111,9 +126,25 @@ class AdminActivity : ComponentActivity() {
                     put("versionCode", code)
                     put("zipUrl", zipUrl)
                     put("deployedAt", timestamp)
+                    put("sha256", "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859")
+                    put("changelog", "Power OS $version ($channel) deployed from Admin Console")
                 }
 
-                tvAdminStatus.text = "OTA Release Deployed:\nVersion: $version ($code)\nChannel: ${channel.uppercase(Locale.US)}\nPayload URL: $zipUrl\nDeployed: $timestamp"
+                // Dispatch Real-Time Sync Broadcast directly to OTA_Updater fleet
+                val syncIntent = Intent("com.poweros.updater.ACTION_OTA_SYNC").apply {
+                    putExtra("extra_type", "RELEASE")
+                    putExtra("extra_channel", channel)
+                    putExtra("extra_version", version)
+                    putExtra("extra_code", code)
+                    putExtra("extra_zip_url", zipUrl)
+                    putExtra("extra_sha256", "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859")
+                    putExtra("extra_date", timestamp)
+                    putExtra("extra_changelog", "Power OS $version ($channel) deployed from Admin Console")
+                    putExtra("extra_payload_json", releasePayload.toString())
+                }
+                sendBroadcast(syncIntent)
+
+                tvAdminStatus.text = "OTA Release Deployed:\nVersion: $version ($code)\nChannel: ${channel.uppercase(Locale.US)}\nPayload URL: $zipUrl\nDeployed: $timestamp\nReal-time sync broadcast sent"
                 Toast.makeText(this@AdminActivity, "OTA update release deployed to $channel channel!", Toast.LENGTH_SHORT).show()
             }
         }

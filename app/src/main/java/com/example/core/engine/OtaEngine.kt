@@ -8,6 +8,7 @@ import com.example.core.model.SystemAnnouncement
 import com.example.core.model.SystemUpdateStatus
 import com.example.core.model.UpdateRelease
 import com.example.core.security.NativeSecurityBridge
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +18,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object OtaEngine {
@@ -51,18 +53,50 @@ object OtaEngine {
     private val _downloadedFileFlow = MutableStateFlow<String?>(null)
     val downloadedFileFlow: StateFlow<String?> = _downloadedFileFlow.asStateFlow()
 
+    private val _downloadSpeedFlow = MutableStateFlow("")
+    val downloadSpeedFlow: StateFlow<String> = _downloadSpeedFlow.asStateFlow()
+
+    private val _downloadEtaFlow = MutableStateFlow("")
+    val downloadEtaFlow: StateFlow<String> = _downloadEtaFlow.asStateFlow()
+
+    private val _isResumingFlow = MutableStateFlow(false)
+    val isResumingFlow: StateFlow<Boolean> = _isResumingFlow.asStateFlow()
+
     fun setReleaseChannel(channel: ReleaseChannel) {
         _currentChannelFlow.value = channel
     }
 
+    fun setStatus(status: SystemUpdateStatus) {
+        _statusFlow.value = status
+    }
+
+    fun setLiveAnnouncement(announcement: SystemAnnouncement) {
+        _announcementFlow.value = announcement
+    }
+
+    fun setLiveRelease(channel: ReleaseChannel, release: UpdateRelease) {
+        _latestReleaseFlow.value = release
+        if (_currentChannelFlow.value == channel && release.versionCode > CURRENT_VERSION_CODE) {
+            _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
+        }
+    }
+
     /**
      * Checks for updates from live backend / GitHub raw repository.
+     * Incorporates cache-busting to immediately reflect remote publishes.
      * Guaranteed asynchronous execution on Dispatchers.IO.
      */
-    suspend fun checkForUpdates(context: Context, targetChannel: ReleaseChannel = _currentChannelFlow.value): CheckResult = withContext(dispatchers.io) {
+    suspend fun checkForUpdates(
+        context: Context,
+        targetChannel: ReleaseChannel = _currentChannelFlow.value
+    ): CheckResult = withContext(dispatchers.io) {
         _statusFlow.value = SystemUpdateStatus.CHECKING
         try {
-            val manifestJson = fetchManifestString(DEFAULT_MANIFEST_URL)
+            val cacheBusterUrl = "$DEFAULT_MANIFEST_URL?nocache=${System.currentTimeMillis()}"
+            val manifestJson = fetchManifestString(cacheBusterUrl).ifBlank {
+                fetchManifestString(DEFAULT_MANIFEST_URL)
+            }
+
             val announcement = parseAnnouncementJson(manifestJson)
             if (announcement != null) {
                 _announcementFlow.value = announcement
@@ -115,88 +149,214 @@ object OtaEngine {
     }
 
     /**
-     * Downloads the binary payload safely into internal storage.
+     * High-Performance Chunked Downloader with Auto-Resume and Connection Recovery.
+     * Streams binary downloads asynchronously on Dispatchers.IO.
+     * Uses HTTP Range headers (bytes=$offset-) to resume interrupted downloads.
+     * Streams exact speed (MB/s) and ETA to StateFlow without dropping UI frames.
      */
     suspend fun downloadUpdatePackage(context: Context, release: UpdateRelease): String? = withContext(dispatchers.io) {
         if (release.zipUrl.isBlank()) return@withContext null
         _statusFlow.value = SystemUpdateStatus.DOWNLOADING
-        _downloadProgressFlow.value = 0
 
         val updatesDir = File(context.filesDir, "updates").apply { mkdirs() }
         val targetFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip")
+        val partFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip.part")
 
-        try {
-            val request = Request.Builder().url(release.zipUrl).build()
-            val response = httpClient.newCall(request).execute()
-
-            if (!response.isSuccessful) {
-                return@withContext null
+        // If target file already exists and passes security checks, return immediately
+        if (targetFile.exists() && targetFile.length() > 0) {
+            val isHeaderValid = NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)
+            val isSha256Valid = release.sha256.isBlank() || NativeSecurityBridge.verifyIntegrity(
+                targetFile.absolutePath,
+                release.sha256,
+                dispatchers.io
+            )
+            if (isHeaderValid && isSha256Valid) {
+                _downloadProgressFlow.value = 100
+                _downloadSpeedFlow.value = "100%"
+                _downloadEtaFlow.value = "Ready"
+                _isResumingFlow.value = false
+                _downloadedFileFlow.value = targetFile.absolutePath
+                _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
+                return@withContext targetFile.absolutePath
             }
+        }
 
-            val body = response.body ?: return@withContext null
-            val contentLength = body.contentLength()
-            val inputStream = body.byteStream()
-            val outputStream = FileOutputStream(targetFile)
+        val maxRetries = 5
+        var retryCount = 0
+        var downloadSuccess = false
 
-            val buffer = ByteArray(8192)
-            var totalBytesRead = 0L
-            var bytesRead: Int
+        while (retryCount < maxRetries && !downloadSuccess) {
+            val existingBytes = if (partFile.exists()) partFile.length() else 0L
+            val isResuming = existingBytes > 0L
+            _isResumingFlow.value = isResuming
 
-            inputStream.use { input ->
-                outputStream.use { output ->
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
-                        if (contentLength > 0) {
-                            val progress = ((totalBytesRead * 100) / contentLength).toInt()
-                            _downloadProgressFlow.value = progress
+            try {
+                val requestBuilder = Request.Builder().url(release.zipUrl)
+                if (isResuming) {
+                    requestBuilder.header("Range", "bytes=$existingBytes-")
+                }
+                val request = requestBuilder.build()
+                val response = httpClient.newCall(request).execute()
+
+                val responseCode = response.code
+                if (responseCode != 200 && responseCode != 206 && responseCode != 416) {
+                    response.close()
+                    retryCount++
+                    delay(1500L)
+                    continue
+                }
+
+                if (responseCode == 416) {
+                    response.close()
+                    if (partFile.exists() && partFile.length() > 0) {
+                        if (targetFile.exists()) targetFile.delete()
+                        partFile.renameTo(targetFile)
+                        downloadSuccess = true
+                        break
+                    } else {
+                        partFile.delete()
+                        retryCount++
+                        continue
+                    }
+                }
+
+                val body = response.body
+                if (body == null) {
+                    response.close()
+                    retryCount++
+                    delay(1000L)
+                    continue
+                }
+
+                val streamLength = body.contentLength()
+                val appendMode = (responseCode == 206)
+                val totalLength = if (appendMode) {
+                    existingBytes + if (streamLength > 0) streamLength else 0L
+                } else {
+                    if (streamLength > 0) streamLength else 0L
+                }
+
+                if (!appendMode && partFile.exists()) {
+                    partFile.delete()
+                }
+
+                val outputStream = FileOutputStream(partFile, appendMode)
+                val inputStream = body.byteStream()
+                val buffer = ByteArray(16384)
+
+                var currentBytes = if (appendMode) existingBytes else 0L
+                var bytesRead: Int
+                var lastWindowTime = System.currentTimeMillis()
+                var lastWindowBytes = 0L
+
+                inputStream.use { input ->
+                    outputStream.use { output ->
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            currentBytes += bytesRead
+                            lastWindowBytes += bytesRead
+
+                            val now = System.currentTimeMillis()
+                            val elapsedMs = now - lastWindowTime
+                            if (elapsedMs >= 500) {
+                                val speedBps = (lastWindowBytes * 1000.0) / elapsedMs
+                                val speedMb = speedBps / (1024.0 * 1024.0)
+                                val speedStr = if (speedMb >= 0.1) {
+                                    String.format(Locale.US, "%.2f MB/s", speedMb)
+                                } else {
+                                    String.format(Locale.US, "%.1f KB/s", speedBps / 1024.0)
+                                }
+                                _downloadSpeedFlow.value = speedStr
+
+                                if (totalLength > 0 && speedBps > 0) {
+                                    val remainingBytes = (totalLength - currentBytes).coerceAtLeast(0)
+                                    val etaSec = (remainingBytes / speedBps).toLong()
+                                    _downloadEtaFlow.value = if (etaSec >= 60) {
+                                        "${etaSec / 60}m ${etaSec % 60}s"
+                                    } else {
+                                        "${etaSec}s"
+                                    }
+                                    val progress = ((currentBytes * 100) / totalLength).toInt().coerceIn(0, 100)
+                                    _downloadProgressFlow.value = progress
+                                }
+                                lastWindowTime = now
+                                lastWindowBytes = 0L
+                            }
                         }
                     }
                 }
+
+                if (partFile.exists() && partFile.length() > 0) {
+                    if (targetFile.exists()) targetFile.delete()
+                    partFile.renameTo(targetFile)
+                    downloadSuccess = true
+                    break
+                }
+            } catch (e: Exception) {
+                // Connection interruption: pause gracefully and auto-resume from byte offset
+                retryCount++
+                _isResumingFlow.value = true
+                _downloadSpeedFlow.value = "Reconnecting..."
+                _downloadEtaFlow.value = "Auto-Resuming (${retryCount}/$maxRetries)"
+                delay(2000L)
+            }
+        }
+
+        if (downloadSuccess && targetFile.exists() && targetFile.length() > 0) {
+            // Native Security Integrity & Header Validation
+            val isHeaderValid = NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)
+            if (!isHeaderValid) {
+                targetFile.delete()
+                _statusFlow.value = SystemUpdateStatus.ERROR
+                _downloadSpeedFlow.value = "Corrupt payload"
+                _downloadEtaFlow.value = ""
+                return@withContext null
             }
 
-            if (targetFile.exists() && targetFile.length() > 0) {
-                // Native Security Integrity & Header Validation
-                val isHeaderValid = NativeSecurityBridge.verifyPayloadHeader(targetFile, dispatchers.io)
-                if (!isHeaderValid) {
+            if (release.sha256.isNotBlank()) {
+                val isSha256Valid = NativeSecurityBridge.verifyIntegrity(
+                    targetFile.absolutePath,
+                    release.sha256,
+                    dispatchers.io
+                )
+                if (!isSha256Valid) {
                     targetFile.delete()
                     _statusFlow.value = SystemUpdateStatus.ERROR
+                    _downloadSpeedFlow.value = "Hash mismatch"
+                    _downloadEtaFlow.value = ""
                     return@withContext null
                 }
-
-                if (release.sha256.isNotBlank()) {
-                    val isSha256Valid = NativeSecurityBridge.verifyIntegrity(
-                        targetFile.absolutePath,
-                        release.sha256,
-                        dispatchers.io
-                    )
-                    if (!isSha256Valid) {
-                        targetFile.delete()
-                        _statusFlow.value = SystemUpdateStatus.ERROR
-                        return@withContext null
-                    }
-                }
-
-                _downloadProgressFlow.value = 100
-                _downloadedFileFlow.value = targetFile.absolutePath
-                _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
-                targetFile.absolutePath
-            } else {
-                null
             }
-        } catch (_: Exception) {
+
+            _downloadProgressFlow.value = 100
+            _downloadSpeedFlow.value = "Verified"
+            _downloadEtaFlow.value = "Ready to install"
+            _isResumingFlow.value = false
+            _downloadedFileFlow.value = targetFile.absolutePath
+            _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
+            targetFile.absolutePath
+        } else {
+            _statusFlow.value = SystemUpdateStatus.ERROR
+            _downloadSpeedFlow.value = "Download failed"
+            _downloadEtaFlow.value = ""
+            _isResumingFlow.value = false
             null
         }
     }
 
     private fun fetchManifestString(url: String): String {
-        val request = Request.Builder().url(url).build()
-        httpClient.newCall(request).execute().use { response ->
-            if (response.isSuccessful) {
-                return response.body?.string().orEmpty()
+        return try {
+            val request = Request.Builder().url(url).build()
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    response.body?.string().orEmpty()
+                } else {
+                    ""
+                }
             }
+        } catch (_: Exception) {
+            ""
         }
-        return ""
     }
 
     fun parseAnnouncementJson(jsonString: String): SystemAnnouncement? {

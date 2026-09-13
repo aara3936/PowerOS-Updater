@@ -29,7 +29,10 @@ data class AppEngineState(
     val downloadedFilePath: String? = null,
     val autoDownloadWifiOnly: Boolean = true,
     val checkIntervalMinutes: Int = 15,
-    val activeDialog: DialogType? = null
+    val activeDialog: DialogType? = null,
+    val downloadSpeedText: String = "",
+    val downloadEtaText: String = "",
+    val isDownloadResuming: Boolean = false
 )
 
 sealed interface AppEngineEvent {
@@ -39,4 +42,5 @@ sealed interface AppEngineEvent {
     data class UpdateStatusChanged(val status: SystemUpdateStatus) : AppEngineEvent
     data class UpdateDownloadCompleted(val filePath: String) : AppEngineEvent
     data class ChannelChanged(val channel: ReleaseChannel) : AppEngineEvent
+    data class DownloadMetricsUpdated(val speedText: String, val etaText: String) : AppEngineEvent
 }
