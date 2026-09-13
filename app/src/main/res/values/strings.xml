@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Power OS Updater</string>
     <string name="header_title">Power OS</string>
-    <string name="version_name">Version 2.1.0-BETA</string>
+    <string name="version_name">Version 2.1.0-RELEASE</string>
 
     <!-- Menu Items (Strict Vertical Order) -->
     <string name="menu_beta_section">Beta Section</string>

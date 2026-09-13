@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/menu_beta_section"
-        android:title="@string/menu_beta_section" />
+        android:id="@+id/menu_check_updates"
+        android:title="Check for Updates" />
     <item
-        android:id="@+id/menu_notifications"
-        android:title="@string/menu_notifications" />
+        android:id="@+id/menu_local_update"
+        android:title="Local Update (.zip)" />
     <item
-        android:id="@+id/menu_privacy_legal"
-        android:title="@string/menu_privacy_legal" />
+        android:id="@+id/menu_update_history"
+        android:title="Update History" />
     <item
         android:id="@+id/menu_settings"
-        android:title="@string/menu_settings" />
+        android:title="Settings" />
 </menu>

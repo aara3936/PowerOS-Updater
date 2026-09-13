@@ -15,7 +15,7 @@ class SystemCoreRepository(
         // System and environment reads executed in background IO
         AppEngineState(
             appName = "Power OS Updater",
-            versionName = "2.1.0-BETA",
+            versionName = "2.1.0-RELEASE",
             versionCode = 210,
             isInitialized = true,
             renderPipelineActive = true,

@@ -28,7 +28,7 @@ object OtaEngine {
     private const val GITHUB_CONTENTS_API_URL = "https://api.github.com/repos/aara3936/PowerOS-OTA/contents/updater.json"
     private const val DEFAULT_MANIFEST_URL = "https://raw.githubusercontent.com/aara3936/PowerOS-OTA/main/updater.json"
     const val CURRENT_VERSION_CODE = 210
-    const val CURRENT_VERSION_NAME = "2.1.0-BETA"
+    const val CURRENT_VERSION_NAME = "2.1.0-RELEASE"
 
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
     private val downloadMutex = Mutex()
@@ -47,7 +47,7 @@ object OtaEngine {
     private val _statusFlow = MutableStateFlow(SystemUpdateStatus.UP_TO_DATE)
     val statusFlow: StateFlow<SystemUpdateStatus> = _statusFlow.asStateFlow()
 
-    private val _currentChannelFlow = MutableStateFlow(ReleaseChannel.BETA)
+    private val _currentChannelFlow = MutableStateFlow(ReleaseChannel.STABLE)
     val currentChannelFlow: StateFlow<ReleaseChannel> = _currentChannelFlow.asStateFlow()
 
     private val _announcementFlow = MutableStateFlow<SystemAnnouncement?>(null)
@@ -182,7 +182,7 @@ object OtaEngine {
             _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
             CheckResult.UpdateReady(
                 UpdateRelease(
-                    version = "2.2.0-BETA",
+                    version = "2.2.0-RELEASE",
                     versionCode = 220,
                     releaseDate = "2026-09-15",
                     size = "${existing.length() / 1024} KB",
@@ -489,7 +489,7 @@ object OtaEngine {
             val root = JSONObject(jsonString)
             val releaseObj = if (root.has("channels")) {
                 val channels = root.getJSONObject("channels")
-                if (channel == ReleaseChannel.BETA && channels.has("beta")) {
+                if (channel == ReleaseChannel.STABLE && channels.has("beta")) {
                     channels.getJSONObject("beta")
                 } else if (channels.has("stable")) {
                     channels.getJSONObject("stable")
@@ -502,7 +502,7 @@ object OtaEngine {
                 root
             }
             return UpdateRelease(
-                version = releaseObj.optString("version", "2.1.0-BETA"),
+                version = releaseObj.optString("version", "2.1.0-RELEASE"),
                 versionCode = releaseObj.optInt("versionCode", 210),
                 releaseDate = releaseObj.optString("releaseDate", ""),
                 size = releaseObj.optString("size", ""),
@@ -531,7 +531,7 @@ object OtaEngine {
                 return match?.groupValues?.get(1)?.toIntOrNull() ?: 210
             }
 
-            val version = extractString("version").ifEmpty { "2.1.0-BETA" }
+            val version = extractString("version").ifEmpty { "2.1.0-RELEASE" }
             val versionCode = extractInt("versionCode")
             val releaseDate = extractString("releaseDate")
             val size = extractString("size")

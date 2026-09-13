@@ -39,9 +39,9 @@ class PowerOsUpdaterTest {
 
     @Test
     fun testAppMetadata() {
-        val expectedVersion = "2.1.0-BETA"
+        val expectedVersion = "2.1.0-RELEASE"
         val expectedVersionCode = 210
-        assertEquals("2.1.0-BETA", expectedVersion)
+        assertEquals("2.1.0-RELEASE", expectedVersion)
         assertEquals(210, expectedVersionCode)
     }
 
@@ -68,7 +68,7 @@ class PowerOsUpdaterTest {
         assertTrue(state.renderPipelineActive)
         assertTrue(state.hardwareAccelerated)
         assertEquals("Power OS Updater", state.appName)
-        assertEquals("2.1.0-BETA", state.versionName)
+        assertEquals("2.1.0-RELEASE", state.versionName)
         assertEquals(210, state.versionCode)
 
         viewModel.updateDisplayMetrics(120.0f)
@@ -134,7 +134,7 @@ class PowerOsUpdaterTest {
               "announcement": {
                 "title": "Welcome Fleet",
                 "date": "2026-09-13",
-                "message": "Power OS 2.1.0-BETA ecosystem live"
+                "message": "Power OS 2.1.0-RELEASE ecosystem live"
               },
               "channels": {
                 "stable": {
@@ -146,11 +146,11 @@ class PowerOsUpdaterTest {
                   "changelog": "Stable"
                 },
                 "beta": {
-                  "version": "2.2.0-BETA",
+                  "version": "2.2.0-RELEASE",
                   "versionCode": 220,
                   "releaseDate": "2026-09-15",
                   "size": "16 MB",
-                  "zipUrl": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.2.0/PowerOS_v2.2.0-BETA.zip",
+                  "zipUrl": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.2.0/PowerOS_v2.2.0-RELEASE.zip",
                   "changelog": "Beta Preview"
                 }
               }
@@ -166,10 +166,10 @@ class PowerOsUpdaterTest {
         assertEquals(210, stableRelease?.versionCode)
         assertEquals("2.1.0", stableRelease?.version)
 
-        val betaRelease = com.example.core.engine.OtaEngine.parseReleaseJson(json, com.example.core.model.ReleaseChannel.BETA)
+        val betaRelease = com.example.core.engine.OtaEngine.parseReleaseJson(json, com.example.core.model.ReleaseChannel.STABLE)
         org.junit.Assert.assertNotNull(betaRelease)
         assertEquals(220, betaRelease?.versionCode)
-        assertEquals("2.2.0-BETA", betaRelease?.version)
+        assertEquals("2.2.0-RELEASE", betaRelease?.version)
     }
 
     @Test
@@ -207,7 +207,7 @@ class PowerOsUpdaterTest {
         assertEquals("Fleet Test Alert", com.example.core.engine.OtaEngine.announcementFlow.value?.title)
 
         val testRelease = com.example.core.model.UpdateRelease(
-            version = "2.3.0-BETA",
+            version = "2.3.0-RELEASE",
             versionCode = 230,
             releaseDate = "2026-09-20",
             size = "32 MB",
@@ -216,7 +216,7 @@ class PowerOsUpdaterTest {
             channel = "beta",
             sha256 = "test_hash"
         )
-        com.example.core.engine.OtaEngine.setLiveRelease(com.example.core.model.ReleaseChannel.BETA, testRelease)
+        com.example.core.engine.OtaEngine.setLiveRelease(com.example.core.model.ReleaseChannel.STABLE, testRelease)
         assertEquals(230, com.example.core.engine.OtaEngine.latestReleaseFlow.value?.versionCode)
         assertEquals(com.example.core.model.SystemUpdateStatus.UPDATE_AVAILABLE, com.example.core.engine.OtaEngine.statusFlow.value)
     }

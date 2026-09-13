@@ -73,7 +73,7 @@ class OtaDownloadService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_START_DOWNLOAD) {
-            val version = intent.getStringExtra(EXTRA_VERSION) ?: "2.2.0-BETA"
+            val version = intent.getStringExtra(EXTRA_VERSION) ?: "2.2.0-RELEASE"
             val versionCode = intent.getIntExtra(EXTRA_VERSION_CODE, 220)
             val zipUrl = intent.getStringExtra(EXTRA_ZIP_URL) ?: ""
             val releaseDate = intent.getStringExtra(EXTRA_RELEASE_DATE) ?: ""

@@ -55,7 +55,7 @@ class OtaSyncReceiver : BroadcastReceiver() {
                     val channelStr = intent.getStringExtra("extra_channel")
                         ?: jsonObj.optString("channel", "beta")
                     val version = intent.getStringExtra("extra_version")
-                        ?: jsonObj.optString("version", "2.2.0-BETA")
+                        ?: jsonObj.optString("version", "2.2.0-RELEASE")
                     val versionCode = intent.getIntExtra("extra_code", 0).let {
                         if (it != 0) it else jsonObj.optInt("versionCode", 220)
                     }
@@ -71,7 +71,7 @@ class OtaSyncReceiver : BroadcastReceiver() {
                     val channel = if (channelStr.equals("stable", ignoreCase = true)) {
                         ReleaseChannel.STABLE
                     } else {
-                        ReleaseChannel.BETA
+                        ReleaseChannel.STABLE
                     }
 
                     val release = UpdateRelease(

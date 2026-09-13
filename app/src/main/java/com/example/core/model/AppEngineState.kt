@@ -13,7 +13,7 @@ enum class DialogType {
 @Keep
 data class AppEngineState(
     val appName: String = "Power OS Updater",
-    val versionName: String = "2.1.0-BETA",
+    val versionName: String = "2.1.0-RELEASE",
     val versionCode: Int = 210,
     val isInitialized: Boolean = false,
     val renderPipelineActive: Boolean = true,
@@ -22,7 +22,7 @@ data class AppEngineState(
     val targetFrameTimeBudgetMs: Float = 16.67f,
     val lifecycleStateDescription: String = "Created",
     val updateStatus: SystemUpdateStatus = SystemUpdateStatus.UP_TO_DATE,
-    val currentChannel: ReleaseChannel = ReleaseChannel.BETA,
+    val currentChannel: ReleaseChannel = ReleaseChannel.STABLE,
     val announcement: SystemAnnouncement? = null,
     val latestRelease: UpdateRelease? = null,
     val downloadProgress: Int = 0,

@@ -74,11 +74,11 @@ object OtaStateStore {
             SystemUpdateStatus.UP_TO_DATE
         }
 
-        val channelName = prefs.getString(KEY_CHANNEL, ReleaseChannel.BETA.name)
+        val channelName = prefs.getString(KEY_CHANNEL, ReleaseChannel.STABLE.name)
         val channel = try {
-            ReleaseChannel.valueOf(channelName ?: ReleaseChannel.BETA.name)
+            ReleaseChannel.valueOf(channelName ?: ReleaseChannel.STABLE.name)
         } catch (_: Exception) {
-            ReleaseChannel.BETA
+            ReleaseChannel.STABLE
         }
 
         val progress = prefs.getInt(KEY_PROGRESS, 0)

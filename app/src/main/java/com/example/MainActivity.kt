@@ -36,6 +36,12 @@ import com.example.core.model.SystemUpdateStatus
 import com.example.core.worker.OtaCheckWorker
 import com.example.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 
 class MainActivity : ComponentActivity() {
 
@@ -65,8 +71,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val mainContentRoot = findViewById<View>(R.id.mainContentRoot)
-        val topHeaderBar = findViewById<View>(R.id.topHeaderBar)
-        val btnOverflowMenu = findViewById<ImageButton>(R.id.btnOverflowMenu)
+        val composeTopBar = findViewById<ComposeView>(R.id.composeTopBar)
         val tvAppName = findViewById<TextView>(R.id.tvAppName)
         val tvVersion = findViewById<TextView>(R.id.tvVersion)
         val statusPill = findViewById<View>(R.id.statusPill)
@@ -83,15 +88,59 @@ class MainActivity : ComponentActivity() {
         val tvDownloadMetrics = findViewById<TextView>(R.id.tvDownloadMetrics)
         val progressBarDownload = findViewById<ProgressBar>(R.id.progressBarDownload)
         val btnPrimaryAction = findViewById<MaterialButton>(R.id.btnPrimaryAction)
+        val btnCheckUpdates = findViewById<MaterialButton>(R.id.btnCheckUpdates)
+
+        composeTopBar.setContent {
+            MaterialTheme(colorScheme = darkColorScheme()) {
+                var menuExpanded by remember { mutableStateOf(false) }
+                TopAppBar(
+                    title = { Text("Power OS", color = androidx.compose.ui.graphics.Color.White) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent
+                    ),
+                    actions = {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "Menu", tint = androidx.compose.ui.graphics.Color.White)
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Check for Updates") },
+                                onClick = {
+                                    menuExpanded = false
+                                    viewModel.checkForUpdates(applicationContext)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Update History") },
+                                onClick = {
+                                    menuExpanded = false
+                                    showNotificationsDialog()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                onClick = {
+                                    menuExpanded = false
+                                    showSettingsDialog()
+                                }
+                            )
+                        }
+                    }
+                )
+            }
+        }
 
         // Modern WindowInsetsCompat handling for seamless edge-to-edge support
         ViewCompat.setOnApplyWindowInsetsListener(mainContentRoot) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            topHeaderBar.setPadding(
-                20.dpToPx(),
-                systemBars.top + 8.dpToPx(),
-                12.dpToPx(),
-                8.dpToPx()
+            composeTopBar.setPadding(
+                0,
+                systemBars.top,
+                0,
+                0
             )
             mainContentRoot.setPadding(
                 systemBars.left,
@@ -100,11 +149,6 @@ class MainActivity : ComponentActivity() {
                 systemBars.bottom + 16.dpToPx()
             )
             insets
-        }
-
-        // Setup 3-Dot Overflow Menu (Strict Vertical Order)
-        btnOverflowMenu.setOnClickListener { view ->
-            showOverflowMenu(view)
         }
 
         // Tap Status Pill to manually trigger check
@@ -116,6 +160,10 @@ class MainActivity : ComponentActivity() {
         val refreshRate = detectDisplayRefreshRate()
         viewModel.updateDisplayMetrics(refreshRate)
         
+        btnCheckUpdates.setOnClickListener {
+            viewModel.checkForUpdates(applicationContext)
+        }
+
         // Target Profile: OPPO A6x Optimization
         val deviceModel = Build.MODEL
         val socMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024)
@@ -259,19 +307,16 @@ class MainActivity : ComponentActivity() {
         popup.menuInflater.inflate(R.menu.main_overflow_menu, popup.menu)
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                R.id.menu_beta_section -> {
-                    viewModel.onBetaSectionClicked()
-                    showBetaDialog()
+                R.id.menu_check_updates -> {
+                    viewModel.checkForUpdates(applicationContext)
                     true
                 }
-                R.id.menu_notifications -> {
-                    viewModel.onNotificationsClicked()
-                    showNotificationsDialog()
+                R.id.menu_local_update -> {
+                    Toast.makeText(this, "Local Update (.zip) feature coming soon.", Toast.LENGTH_SHORT).show()
                     true
                 }
-                R.id.menu_privacy_legal -> {
-                    viewModel.onPrivacyLegalClicked()
-                    showPrivacyDialog()
+                R.id.menu_update_history -> {
+                    Toast.makeText(this, "Update History coming soon.", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.menu_settings -> {
@@ -290,13 +335,13 @@ class MainActivity : ComponentActivity() {
         val switchBeta = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchBetaChannel)
         val tvStatus = view.findViewById<TextView>(R.id.tvBetaChannelStatus)
 
-        val isBeta = viewModel.uiState.value.currentChannel == com.example.core.model.ReleaseChannel.BETA
+        val isBeta = viewModel.uiState.value.currentChannel == com.example.core.model.ReleaseChannel.STABLE
         switchBeta.isChecked = isBeta
         tvStatus.text = if (isBeta) "Currently: Active (Preview Builds)" else "Currently: Inactive (Stable Channel)"
         tvStatus.setTextColor(if (isBeta) getColor(R.color.neon_cyan) else getColor(R.color.slate_400))
 
         switchBeta.setOnCheckedChangeListener { _, isChecked ->
-            val targetChannel = if (isChecked) com.example.core.model.ReleaseChannel.BETA else com.example.core.model.ReleaseChannel.STABLE
+            val targetChannel = if (isChecked) com.example.core.model.ReleaseChannel.STABLE else com.example.core.model.ReleaseChannel.STABLE
             tvStatus.text = if (isChecked) "Currently: Active (Preview Builds)" else "Currently: Inactive (Stable Channel)"
             tvStatus.setTextColor(if (isChecked) getColor(R.color.neon_cyan) else getColor(R.color.slate_400))
             viewModel.switchReleaseChannel(targetChannel, applicationContext)
@@ -476,11 +521,20 @@ class MainActivity : ComponentActivity() {
 
     private fun detectDisplayRefreshRate(): Float {
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                display?.refreshRate ?: 60.0f
+            val d = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                display
             } else {
                 @Suppress("DEPRECATION")
-                (getSystemService(WINDOW_SERVICE) as? WindowManager)?.defaultDisplay?.refreshRate ?: 60.0f
+                (getSystemService(WINDOW_SERVICE) as? WindowManager)?.defaultDisplay
+            }
+            val bestMode = d?.supportedModes?.maxByOrNull { it.refreshRate }
+            if (bestMode != null) {
+                val params = window.attributes
+                params.preferredDisplayModeId = bestMode.modeId
+                window.attributes = params
+                bestMode.refreshRate
+            } else {
+                d?.refreshRate ?: 60.0f
             }
         } catch (_: Exception) {
             60.0f
