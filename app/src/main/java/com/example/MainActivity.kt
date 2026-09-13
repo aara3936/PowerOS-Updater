@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private var pulseAnimator: ObjectAnimator? = null
     private val syncReceiver = OtaSyncReceiver()
+    private val springAnimations = mutableListOf<SpringAnimation>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -236,17 +237,20 @@ class MainActivity : ComponentActivity() {
             view.translationY = 150f
             view.alpha = 0f
             
-            SpringAnimation(view, DynamicAnimation.TRANSLATION_Y, 0f).apply {
+            val yAnim = SpringAnimation(view, DynamicAnimation.TRANSLATION_Y, 0f).apply {
                 spring.stiffness = SpringForce.STIFFNESS_LOW
                 spring.dampingRatio = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY
                 start()
             }
             
-            SpringAnimation(view, DynamicAnimation.ALPHA, 1f).apply {
+            val alphaAnim = SpringAnimation(view, DynamicAnimation.ALPHA, 1f).apply {
                 spring.stiffness = SpringForce.STIFFNESS_LOW
                 spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
                 start()
             }
+            
+            springAnimations.add(yAnim)
+            springAnimations.add(alphaAnim)
         }
     }
 
@@ -461,6 +465,8 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         pulseAnimator?.cancel()
         pulseAnimator = null
+        springAnimations.forEach { it.cancel() }
+        springAnimations.clear()
         try {
             unregisterReceiver(syncReceiver)
         } catch (_: Exception) {

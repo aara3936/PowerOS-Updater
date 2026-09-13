@@ -291,101 +291,97 @@ object OtaEngine {
                         requestBuilder.header("Range", "bytes=$existingBytes-")
                     }
                     val request = requestBuilder.build()
-                    val response = httpClient.newCall(request).execute()
+                    httpClient.newCall(request).execute().use { response ->
+                        val responseCode = response.code
+                        if (responseCode != 200 && responseCode != 206 && responseCode != 416) {
+                            retryCount++
+                            delay(1500L)
+                            return@use // Proceed to next loop iteration after delay
+                        }
 
-                    val responseCode = response.code
-                    if (responseCode != 200 && responseCode != 206 && responseCode != 416) {
-                        response.close()
-                        retryCount++
-                        delay(1500L)
-                        continue
-                    }
+                        if (responseCode == 416) {
+                            if (partFile.exists() && partFile.length() > 0) {
+                                if (targetFile.exists()) targetFile.delete()
+                                partFile.renameTo(targetFile)
+                                downloadSuccess = true
+                                return@use
+                            } else {
+                                partFile.delete()
+                                retryCount++
+                                return@use
+                            }
+                        }
 
-                    if (responseCode == 416) {
-                        response.close()
+                        val body = response.body
+                        if (body == null) {
+                            retryCount++
+                            delay(1000L)
+                            return@use
+                        }
+
+                        val streamLength = body.contentLength()
+                        val appendMode = (responseCode == 206)
+                        val totalLength = if (appendMode) {
+                            existingBytes + if (streamLength > 0) streamLength else 0L
+                        } else {
+                            if (streamLength > 0) streamLength else 0L
+                        }
+
+                        if (!appendMode && partFile.exists()) {
+                            partFile.delete()
+                        }
+
+                        val outputStream = FileOutputStream(partFile, appendMode)
+                        val inputStream = body.byteStream()
+                        val buffer = ByteArray(16384)
+
+                        var currentBytes = if (appendMode) existingBytes else 0L
+                        var bytesRead: Int
+                        var lastWindowTime = System.currentTimeMillis()
+                        var lastWindowBytes = 0L
+
+                        inputStream.use { input ->
+                            outputStream.use { output ->
+                                while (input.read(buffer).also { bytesRead = it } != -1) {
+                                    output.write(buffer, 0, bytesRead)
+                                    currentBytes += bytesRead
+                                    lastWindowBytes += bytesRead
+
+                                    val now = System.currentTimeMillis()
+                                    val elapsedMs = now - lastWindowTime
+                                    if (elapsedMs >= 500) {
+                                        val speedBps = (lastWindowBytes * 1000.0) / elapsedMs
+                                        val speedMb = speedBps / (1024.0 * 1024.0)
+                                        val speedStr = if (speedMb >= 0.1) {
+                                            String.format(Locale.US, "%.2f MB/s", speedMb)
+                                        } else {
+                                            String.format(Locale.US, "%.1f KB/s", speedBps / 1024.0)
+                                        }
+                                        _downloadSpeedFlow.value = speedStr
+
+                                        if (totalLength > 0 && speedBps > 0) {
+                                            val remainingBytes = (totalLength - currentBytes).coerceAtLeast(0)
+                                            val etaSec = (remainingBytes / speedBps).toLong()
+                                            _downloadEtaFlow.value = if (etaSec >= 60) {
+                                                "${etaSec / 60}m ${etaSec % 60}s"
+                                            } else {
+                                                "${etaSec}s"
+                                            }
+                                            val progress = ((currentBytes * 100) / totalLength).toInt().coerceIn(0, 100)
+                                            _downloadProgressFlow.value = progress
+                                        }
+                                        lastWindowTime = now
+                                        lastWindowBytes = 0L
+                                    }
+                                }
+                            }
+                        }
+
                         if (partFile.exists() && partFile.length() > 0) {
                             if (targetFile.exists()) targetFile.delete()
                             partFile.renameTo(targetFile)
                             downloadSuccess = true
-                            break
-                        } else {
-                            partFile.delete()
-                            retryCount++
-                            continue
                         }
-                    }
-
-                    val body = response.body
-                    if (body == null) {
-                        response.close()
-                        retryCount++
-                        delay(1000L)
-                        continue
-                    }
-
-                    val streamLength = body.contentLength()
-                    val appendMode = (responseCode == 206)
-                    val totalLength = if (appendMode) {
-                        existingBytes + if (streamLength > 0) streamLength else 0L
-                    } else {
-                        if (streamLength > 0) streamLength else 0L
-                    }
-
-                    if (!appendMode && partFile.exists()) {
-                        partFile.delete()
-                    }
-
-                    val outputStream = FileOutputStream(partFile, appendMode)
-                    val inputStream = body.byteStream()
-                    val buffer = ByteArray(16384)
-
-                    var currentBytes = if (appendMode) existingBytes else 0L
-                    var bytesRead: Int
-                    var lastWindowTime = System.currentTimeMillis()
-                    var lastWindowBytes = 0L
-
-                    inputStream.use { input ->
-                        outputStream.use { output ->
-                            while (input.read(buffer).also { bytesRead = it } != -1) {
-                                output.write(buffer, 0, bytesRead)
-                                currentBytes += bytesRead
-                                lastWindowBytes += bytesRead
-
-                                val now = System.currentTimeMillis()
-                                val elapsedMs = now - lastWindowTime
-                                if (elapsedMs >= 500) {
-                                    val speedBps = (lastWindowBytes * 1000.0) / elapsedMs
-                                    val speedMb = speedBps / (1024.0 * 1024.0)
-                                    val speedStr = if (speedMb >= 0.1) {
-                                        String.format(Locale.US, "%.2f MB/s", speedMb)
-                                    } else {
-                                        String.format(Locale.US, "%.1f KB/s", speedBps / 1024.0)
-                                    }
-                                    _downloadSpeedFlow.value = speedStr
-
-                                    if (totalLength > 0 && speedBps > 0) {
-                                        val remainingBytes = (totalLength - currentBytes).coerceAtLeast(0)
-                                        val etaSec = (remainingBytes / speedBps).toLong()
-                                        _downloadEtaFlow.value = if (etaSec >= 60) {
-                                            "${etaSec / 60}m ${etaSec % 60}s"
-                                        } else {
-                                            "${etaSec}s"
-                                        }
-                                        val progress = ((currentBytes * 100) / totalLength).toInt().coerceIn(0, 100)
-                                        _downloadProgressFlow.value = progress
-                                    }
-                                    lastWindowTime = now
-                                    lastWindowBytes = 0L
-                                }
-                            }
-                        }
-                    }
-
-                    if (partFile.exists() && partFile.length() > 0) {
-                        if (targetFile.exists()) targetFile.delete()
-                        partFile.renameTo(targetFile)
-                        downloadSuccess = true
-                        break
                     }
                 } catch (e: Exception) {
                     retryCount++
