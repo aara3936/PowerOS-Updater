@@ -6,13 +6,13 @@
   },
   "channels": {
     "stable": {
-      "version": "2.1.0",
-      "versionCode": 210,
+      "version": "4.09STABLEE1R3S09(EXO001) PK",
+      "versionCode": 1094,
       "releaseDate": "2026-09-13",
-      "size": "15 MB",
-      "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v2.1.0\/PowerOS_v2.1.0.zip",
-      "sha256": "4a5323c21a1662fb52cf24bb561dffcfd5cb911075f9ee7dcf82d1c6757b322a",
-      "changelog": "Power OS 2.1.0 Stable:\n• Clean MVVM architecture reboot\n• Zero-overdraw render pipeline"
+      "size": "25 MB",
+      "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
+      "sha256": "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859",
+      "changelog": "Power OS 4.09STABLEE1R3S09(EXO001) PK (stable):\n• Direct GitHub pipeline release\n• High-performance chunked auto-resume"
     },
     "beta": {
       "version": "2.2.0-BETA",
