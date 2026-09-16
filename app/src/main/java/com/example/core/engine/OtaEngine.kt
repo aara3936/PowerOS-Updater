@@ -127,7 +127,7 @@ object OtaEngine {
                         return@withContext CheckResult.UpToDate
                     } else if (release.versionCode > CURRENT_VERSION_CODE) {
                         _latestReleaseFlow.value = release
-    
+
                         // If already downloaded and verified, keep READY_TO_INSTALL
                         val updatesDir = File(context.filesDir, "updates")
                         val targetFile = File(updatesDir, "PowerOS_update_${release.versionCode}.zip")
@@ -138,22 +138,9 @@ object OtaEngine {
                             _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
                             return@withContext CheckResult.UpdateReady(release, targetFile.absolutePath)
                         }
-    
-                        // Auto-Trigger Download Pipeline: zero manual interaction required
-                        if (!isCurrentlyDownloading) {
-                            _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
-                            val downloadedPath = downloadUpdatePackage(context, release)
-                            if (downloadedPath != null) {
-                                _downloadedFileFlow.value = downloadedPath
-                                _statusFlow.value = SystemUpdateStatus.READY_TO_INSTALL
-                                return@withContext CheckResult.UpdateReady(release, downloadedPath)
-                            } else {
-                                _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
-                                return@withContext CheckResult.UpdateFound(release)
-                            }
-                        } else {
-                            return@withContext CheckResult.UpdateFound(release)
-                        }
+
+                        _statusFlow.value = SystemUpdateStatus.UPDATE_AVAILABLE
+                        return@withContext CheckResult.UpdateFound(release)
                     } else {
                         if (!isCurrentlyDownloading && _statusFlow.value != SystemUpdateStatus.READY_TO_INSTALL) {
                             _statusFlow.value = SystemUpdateStatus.UP_TO_DATE
@@ -486,59 +473,102 @@ object OtaEngine {
     fun parseReleaseJson(jsonString: String, channel: ReleaseChannel = ReleaseChannel.STABLE): UpdateRelease? {
         if (jsonString.isBlank()) return null
         try {
-            val root = JSONObject(jsonString)
+            val gson = com.google.gson.Gson()
+            val manifest = gson.fromJson(jsonString, com.example.core.model.ManifestResponse::class.java)
+
+            // 1. Check channel in channels map
+            val channelRelease = manifest.channels?.get(channel.tag)
+                ?: manifest.channels?.get(if (channel == ReleaseChannel.STABLE) "stable" else "beta")
+
+            if (channelRelease != null && channelRelease.versionCode > 0) {
+                return channelRelease.copy(channel = channel.tag)
+            }
+
+            // 2. Check direct stable / beta objects
+            val directChannel = if (channel == ReleaseChannel.BETA) manifest.beta else manifest.stable
+            if (directChannel != null && directChannel.versionCode > 0) {
+                return directChannel.copy(channel = channel.tag)
+            }
+
+            // 3. Fallback to alternative channel if present
+            if (channel == ReleaseChannel.STABLE && manifest.stable != null && manifest.stable.versionCode > 0) {
+                return manifest.stable.copy(channel = channel.tag)
+            } else if (channel == ReleaseChannel.BETA && manifest.beta != null && manifest.beta.versionCode > 0) {
+                return manifest.beta.copy(channel = channel.tag)
+            }
+
+            // 4. Check root-level release fields
+            if (manifest.versionCode != null && manifest.versionCode > 0) {
+                return UpdateRelease(
+                    version = manifest.version ?: "${manifest.versionCode}.0.0-RELEASE",
+                    versionCode = manifest.versionCode,
+                    releaseDate = manifest.releaseDate.orEmpty(),
+                    size = manifest.size.orEmpty(),
+                    zipUrl = manifest.zipUrl.orEmpty(),
+                    changelog = manifest.changelog.orEmpty(),
+                    channel = channel.tag,
+                    sha256 = manifest.sha256.orEmpty(),
+                    freeze = manifest.freeze ?: false
+                )
+            }
+        } catch (_: Exception) {}
+
+        return parseReleaseJsonFallback(jsonString, channel)
+    }
+
+    private fun parseReleaseJsonFallback(json: String, channel: ReleaseChannel): UpdateRelease? {
+        return try {
+            val root = JSONObject(json)
             val releaseObj = if (root.has("channels")) {
                 val channels = root.getJSONObject("channels")
-                if (channel == ReleaseChannel.STABLE && channels.has("beta")) {
+                if (channel == ReleaseChannel.BETA && channels.has("beta")) {
                     channels.getJSONObject("beta")
                 } else if (channels.has("stable")) {
                     channels.getJSONObject("stable")
+                } else if (channels.has("beta")) {
+                    channels.getJSONObject("beta")
                 } else {
                     root
                 }
+            } else if (channel == ReleaseChannel.BETA && root.has("beta")) {
+                root.getJSONObject("beta")
             } else if (root.has("stable")) {
                 root.getJSONObject("stable")
             } else {
                 root
             }
-            return UpdateRelease(
-                version = releaseObj.optString("version", "2.1.0-RELEASE"),
-                versionCode = releaseObj.optInt("versionCode", 210),
-                releaseDate = releaseObj.optString("releaseDate", ""),
-                size = releaseObj.optString("size", ""),
-                zipUrl = releaseObj.optString("zipUrl", ""),
-                changelog = releaseObj.optString("changelog", ""),
-                channel = channel.tag,
-                sha256 = releaseObj.optString("sha256", ""),
-                freeze = releaseObj.optBoolean("freeze", false)
-            )
-        } catch (_: Throwable) {
-            return parseReleaseJsonFallback(jsonString, channel)
-        }
-    }
 
-    private fun parseReleaseJsonFallback(json: String, channel: ReleaseChannel): UpdateRelease? {
-        return try {
-            val channelBlockMatch = Regex("\"${channel.tag}\"\\s*:\\s*\\{([^}]+)\\}").find(json)
-            val targetScope = channelBlockMatch?.groupValues?.get(1) ?: json
-
-            fun extractString(key: String): String {
-                val match = Regex("\"$key\"\\s*:\\s*\"([^\"]*)\"").find(targetScope)
-                return match?.groupValues?.get(1).orEmpty()
-            }
-            fun extractInt(key: String): Int {
-                val match = Regex("\"$key\"\\s*:\\s*(\\d+)").find(targetScope)
-                return match?.groupValues?.get(1)?.toIntOrNull() ?: 210
+            val version = when {
+                releaseObj.has("version_name") -> releaseObj.optString("version_name")
+                releaseObj.has("version") -> releaseObj.optString("version")
+                releaseObj.has("versionName") -> releaseObj.optString("versionName")
+                else -> "2.1.0-RELEASE"
             }
 
-            val version = extractString("version").ifEmpty { "2.1.0-RELEASE" }
-            val versionCode = extractInt("versionCode")
-            val releaseDate = extractString("releaseDate")
-            val size = extractString("size")
-            val zipUrl = extractString("zipUrl")
-            val changelog = extractString("changelog")
-            val sha256 = extractString("sha256")
-            val freeze = Regex("\"freeze\"\\s*:\\s*(true|false)").find(targetScope)?.groupValues?.get(1)?.toBoolean() ?: false
+            val versionCode = when {
+                releaseObj.has("version_code") -> releaseObj.optInt("version_code", 210)
+                releaseObj.has("versionCode") -> releaseObj.optInt("versionCode", 210)
+                else -> 210
+            }
+
+            val releaseDate = when {
+                releaseObj.has("release_date") -> releaseObj.optString("release_date")
+                releaseObj.has("releaseDate") -> releaseObj.optString("releaseDate")
+                else -> ""
+            }
+
+            val zipUrl = when {
+                releaseObj.has("zip_url") -> releaseObj.optString("zip_url")
+                releaseObj.has("zipUrl") -> releaseObj.optString("zipUrl")
+                releaseObj.has("url") -> releaseObj.optString("url")
+                releaseObj.has("download_url") -> releaseObj.optString("download_url")
+                else -> ""
+            }
+
+            val size = releaseObj.optString("size", "")
+            val changelog = releaseObj.optString("changelog", "")
+            val sha256 = releaseObj.optString("sha256", "")
+            val freeze = releaseObj.optBoolean("freeze", false)
 
             UpdateRelease(
                 version = version,

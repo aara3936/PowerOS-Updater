@@ -166,10 +166,32 @@ class PowerOsUpdaterTest {
         assertEquals(210, stableRelease?.versionCode)
         assertEquals("2.1.0", stableRelease?.version)
 
-        val betaRelease = com.example.core.engine.OtaEngine.parseReleaseJson(json, com.example.core.model.ReleaseChannel.STABLE)
+        val betaRelease = com.example.core.engine.OtaEngine.parseReleaseJson(json, com.example.core.model.ReleaseChannel.BETA)
         org.junit.Assert.assertNotNull(betaRelease)
         assertEquals(220, betaRelease?.versionCode)
         assertEquals("2.2.0-RELEASE", betaRelease?.version)
+    }
+
+    @Test
+    fun testSnakeCaseManifestParsing() = runTest(testDispatcher) {
+        val repo = SystemCoreRepository(testDispatchers)
+        val snakeJson = """
+            {
+              "version_name": "2.3.0-RELEASE",
+              "version_code": 230,
+              "release_date": "2026-09-20",
+              "size": "30 MB",
+              "zip_url": "https://github.com/aara3936/PowerOS-OTA/releases/download/v2.3.0/update.zip",
+              "changelog": "Power OS 2.3.0"
+            }
+        """.trimIndent()
+
+        val release = repo.parseUpdateRelease(snakeJson)
+        org.junit.Assert.assertNotNull(release)
+        assertEquals("2.3.0-RELEASE", release?.version)
+        assertEquals(230, release?.versionCode)
+        assertEquals("https://github.com/aara3936/PowerOS-OTA/releases/download/v2.3.0/update.zip", release?.zipUrl)
+        assertTrue(repo.isUpdateAvailable(release!!))
     }
 
     @Test

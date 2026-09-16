@@ -8,6 +8,8 @@ import com.example.core.dispatcher.DispatcherProvider
 import com.example.core.engine.OtaEngine
 import com.example.core.model.AppEngineEvent
 import com.example.core.model.AppEngineState
+import com.example.core.model.DialogType
+import com.example.core.model.ReleaseChannel
 import com.example.core.model.SystemUpdateStatus
 import com.example.core.persistence.OtaStateStore
 import com.example.core.repository.SystemCoreRepository
@@ -25,7 +27,7 @@ import kotlinx.coroutines.launch
 /**
  * MainViewModel manages the state lifecycle and orchestrates coroutines.
  * Completely detached from View/Activity context to guarantee zero memory leaks.
- * Retains state across configuration changes (rotation, theme switch).
+ * Retains state across configuration changes (rotation, theme switch) and lifecycle events.
  */
 class MainViewModel(
     private val repository: SystemCoreRepository = SystemCoreRepository(DefaultDispatcherProvider()),
@@ -50,8 +52,25 @@ class MainViewModel(
         viewModelScope.launch(dispatchers.main) {
             launch {
                 OtaEngine.statusFlow.collectLatest { status ->
-                    _uiState.value = _uiState.value.copy(updateStatus = status)
-                    _events.tryEmit(AppEngineEvent.UpdateStatusChanged(status))
+                    val currentRelease = _uiState.value.latestRelease
+                    val resolvedStatus = if (status == SystemUpdateStatus.UP_TO_DATE &&
+                        currentRelease != null &&
+                        repository.isUpdateAvailable(currentRelease, _uiState.value.versionCode)
+                    ) {
+                        // Preserve ACTIVE update state; do not let default engine idle override active update
+                        if (_uiState.value.downloadedFilePath != null && _uiState.value.downloadProgress == 100) {
+                            SystemUpdateStatus.READY_TO_INSTALL
+                        } else if (_uiState.value.updateStatus == SystemUpdateStatus.DOWNLOADING) {
+                            SystemUpdateStatus.DOWNLOADING
+                        } else {
+                            SystemUpdateStatus.UPDATE_AVAILABLE
+                        }
+                    } else {
+                        status
+                    }
+
+                    _uiState.value = _uiState.value.copy(updateStatus = resolvedStatus)
+                    _events.tryEmit(AppEngineEvent.UpdateStatusChanged(resolvedStatus))
                 }
             }
             launch {
@@ -62,12 +81,24 @@ class MainViewModel(
             }
             launch {
                 OtaEngine.announcementFlow.collectLatest { ann ->
-                    _uiState.value = _uiState.value.copy(announcement = ann)
+                    if (ann != null) {
+                        _uiState.value = _uiState.value.copy(announcement = ann)
+                    }
                 }
             }
             launch {
                 OtaEngine.latestReleaseFlow.collectLatest { release ->
-                    _uiState.value = _uiState.value.copy(latestRelease = release)
+                    if (release != null) {
+                        val isNewer = repository.isUpdateAvailable(release, _uiState.value.versionCode)
+                        _uiState.value = _uiState.value.copy(
+                            latestRelease = release,
+                            updateStatus = if (isNewer && _uiState.value.updateStatus == SystemUpdateStatus.UP_TO_DATE) {
+                                SystemUpdateStatus.UPDATE_AVAILABLE
+                            } else {
+                                _uiState.value.updateStatus
+                            }
+                        )
+                    }
                 }
             }
             launch {
@@ -104,14 +135,14 @@ class MainViewModel(
     }
 
     /**
-     * Continuous 5-second zero-latency GitHub ETag sync polling loop.
+     * Continuous periodic background synchronization loop.
      * Guaranteed asynchronous execution on Dispatchers.IO.
      */
     fun startRealtimePolling(context: Context) {
         viewModelScope.launch(dispatchers.io) {
             while (isActive) {
-                kotlinx.coroutines.delay(5000L)
-                OtaEngine.checkForUpdates(context)
+                kotlinx.coroutines.delay(15000L)
+                OtaEngine.checkForUpdates(context, _uiState.value.currentChannel)
             }
         }
     }
@@ -120,6 +151,7 @@ class MainViewModel(
         val state = _uiState.value
         val release = state.latestRelease
         if (state.updateStatus == SystemUpdateStatus.UPDATE_AVAILABLE && release != null) {
+            _uiState.value = _uiState.value.copy(updateStatus = SystemUpdateStatus.DOWNLOADING)
             OtaDownloadService.startDownload(context, release)
         } else if (state.updateStatus == SystemUpdateStatus.READY_TO_INSTALL) {
             _userFeedback.tryEmit("System package ready for installation")
@@ -131,9 +163,17 @@ class MainViewModel(
     fun restorePersistedState(context: Context) {
         viewModelScope.launch(dispatchers.main) {
             val cachedState = OtaStateStore.loadState(context)
-            if (cachedState.latestRelease != null || cachedState.downloadedFilePath != null) {
-                _uiState.value = cachedState
+            if (cachedState.latestRelease != null && repository.isUpdateAvailable(cachedState.latestRelease, _uiState.value.versionCode)) {
+                _uiState.value = _uiState.value.copy(
+                    updateStatus = cachedState.updateStatus,
+                    currentChannel = cachedState.currentChannel,
+                    downloadProgress = cachedState.downloadProgress,
+                    downloadedFilePath = cachedState.downloadedFilePath,
+                    latestRelease = cachedState.latestRelease,
+                    announcement = cachedState.announcement ?: _uiState.value.announcement
+                )
                 OtaEngine.setReleaseChannel(cachedState.currentChannel)
+                OtaEngine.setLiveRelease(cachedState.currentChannel, cachedState.latestRelease)
             }
         }
     }
@@ -153,18 +193,37 @@ class MainViewModel(
     fun checkForUpdates(context: Context) {
         viewModelScope.launch(dispatchers.main) {
             _uiState.value = _uiState.value.copy(updateStatus = SystemUpdateStatus.CHECKING)
-            val result = OtaEngine.checkForUpdates(context)
+            val result = OtaEngine.checkForUpdates(context, _uiState.value.currentChannel)
             when (result) {
                 is OtaEngine.CheckResult.UpToDate -> {
-                    _userFeedback.tryEmit("System is up to date (${OtaEngine.CURRENT_VERSION_NAME})")
+                    val currentRelease = _uiState.value.latestRelease
+                    if (currentRelease != null && repository.isUpdateAvailable(currentRelease, _uiState.value.versionCode)) {
+                        _uiState.value = _uiState.value.copy(updateStatus = SystemUpdateStatus.UPDATE_AVAILABLE)
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            updateStatus = SystemUpdateStatus.UP_TO_DATE,
+                            latestRelease = null
+                        )
+                        _userFeedback.tryEmit("System is up to date (${OtaEngine.CURRENT_VERSION_NAME})")
+                    }
                 }
                 is OtaEngine.CheckResult.UpdateFound -> {
+                    _uiState.value = _uiState.value.copy(
+                        updateStatus = SystemUpdateStatus.UPDATE_AVAILABLE,
+                        latestRelease = result.release
+                    )
                     _userFeedback.tryEmit("New update available: ${result.release.version}")
-                    // Ensure continuous background download persistence via Foreground Service
-                    OtaDownloadService.startDownload(context, result.release)
+                    OtaStateStore.saveLatestRelease(context, result.release)
                 }
                 is OtaEngine.CheckResult.UpdateReady -> {
+                    _uiState.value = _uiState.value.copy(
+                        updateStatus = SystemUpdateStatus.READY_TO_INSTALL,
+                        latestRelease = result.release,
+                        downloadedFilePath = result.filePath,
+                        downloadProgress = 100
+                    )
                     _userFeedback.tryEmit("Update ${result.release.version} downloaded & ready to install")
+                    OtaStateStore.saveLatestRelease(context, result.release)
                 }
             }
             saveCurrentState(context)
@@ -191,7 +250,7 @@ class MainViewModel(
         _events.tryEmit(AppEngineEvent.LifecycleUpdated(stateName))
     }
 
-    fun openDialog(type: com.example.core.model.DialogType) {
+    fun openDialog(type: DialogType) {
         _uiState.value = _uiState.value.copy(activeDialog = type)
     }
 
@@ -199,7 +258,7 @@ class MainViewModel(
         _uiState.value = _uiState.value.copy(activeDialog = null)
     }
 
-    fun switchReleaseChannel(channel: com.example.core.model.ReleaseChannel, context: Context) {
+    fun switchReleaseChannel(channel: ReleaseChannel, context: Context) {
         OtaEngine.setReleaseChannel(channel)
         _uiState.value = _uiState.value.copy(currentChannel = channel)
         _userFeedback.tryEmit("Switched to ${channel.displayName}")
@@ -216,18 +275,18 @@ class MainViewModel(
 
     // Dropdown Menu Option Handlers (Strict Vertical Order)
     fun onBetaSectionClicked() {
-        openDialog(com.example.core.model.DialogType.BETA_SECTION)
+        openDialog(DialogType.BETA_SECTION)
     }
 
     fun onNotificationsClicked() {
-        openDialog(com.example.core.model.DialogType.NOTIFICATIONS)
+        openDialog(DialogType.NOTIFICATIONS)
     }
 
     fun onPrivacyLegalClicked() {
-        openDialog(com.example.core.model.DialogType.PRIVACY_LEGAL)
+        openDialog(DialogType.PRIVACY_LEGAL)
     }
 
     fun onSettingsClicked() {
-        openDialog(com.example.core.model.DialogType.SETTINGS)
+        openDialog(DialogType.SETTINGS)
     }
 }
