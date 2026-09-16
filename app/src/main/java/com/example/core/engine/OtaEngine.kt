@@ -189,14 +189,25 @@ object OtaEngine {
 
     /**
      * Dynamic ETag / Header checking against GitHub repository API endpoints.
-     * Returns HTTP 304 (Not Modified) with zero payload latency when unchanged.
+     * Guaranteed cache-busting with 'Cache-Control: no-cache' and unique timestamp query parameter.
      */
     private fun fetchManifestWithEtag(): String {
-        // 1. Try GitHub Contents API with ETag
+        val timestamp = System.currentTimeMillis()
+
+        // 1. Try GitHub Contents API with ETag & cache buster
         try {
+            val apiUrl = if (GITHUB_CONTENTS_API_URL.contains("?")) {
+                "$GITHUB_CONTENTS_API_URL&_t=$timestamp"
+            } else {
+                "$GITHUB_CONTENTS_API_URL?_t=$timestamp"
+            }
+
             val reqBuilder = Request.Builder()
-                .url(GITHUB_CONTENTS_API_URL)
+                .url(apiUrl)
                 .header("Accept", "application/vnd.github.v3+json")
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0")
 
             lastEtag?.let {
                 reqBuilder.header("If-None-Match", it)
@@ -224,10 +235,21 @@ object OtaEngine {
             }
         } catch (_: Exception) {}
 
-        // 2. Direct Raw GitHub URL with Cache Buster Fallback
+        // 2. Direct Raw GitHub URL with Cache-Control headers and unique timestamp query
         try {
-            val cacheBusterUrl = "$DEFAULT_MANIFEST_URL?nocache=${System.currentTimeMillis()}"
-            val req = Request.Builder().url(cacheBusterUrl).build()
+            val cacheBusterUrl = if (DEFAULT_MANIFEST_URL.contains("?")) {
+                "$DEFAULT_MANIFEST_URL&t=$timestamp"
+            } else {
+                "$DEFAULT_MANIFEST_URL?t=$timestamp"
+            }
+
+            val req = Request.Builder()
+                .url(cacheBusterUrl)
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0")
+                .build()
+
             httpClient.newCall(req).execute().use { response ->
                 if (response.isSuccessful) {
                     val str = response.body?.string().orEmpty()

@@ -6,10 +6,10 @@ import com.google.gson.annotations.SerializedName
 @Keep
 data class UpdateRelease(
     @SerializedName(value = "version", alternate = ["version_name", "versionName"])
-    val version: String = "2.1.0-RELEASE",
+    val version: String = "4.09STABLEE1R3S09(EXO001) PK",
 
     @SerializedName(value = "versionCode", alternate = ["version_code", "version_Code"])
-    val versionCode: Int = 210,
+    val versionCode: Int = 9999,
 
     @SerializedName(value = "releaseDate", alternate = ["release_date", "date"])
     val releaseDate: String = "",

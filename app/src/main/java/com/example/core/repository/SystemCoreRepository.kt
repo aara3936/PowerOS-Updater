@@ -22,6 +22,8 @@ class SystemCoreRepository(
         const val CURRENT_VERSION_CODE = 210
         const val CURRENT_VERSION_NAME = "2.1.0-RELEASE"
         const val DEFAULT_APP_NAME = "Power OS Updater"
+        const val DEFAULT_REMOTE_VERSION = "4.09STABLEE1R3S09(EXO001) PK"
+        const val DEFAULT_REMOTE_VERSION_CODE = 9999
     }
 
     /**
@@ -176,13 +178,13 @@ class SystemCoreRepository(
                 releaseObj.has("version_name") -> releaseObj.optString("version_name")
                 releaseObj.has("version") -> releaseObj.optString("version")
                 releaseObj.has("versionName") -> releaseObj.optString("versionName")
-                else -> CURRENT_VERSION_NAME
+                else -> DEFAULT_REMOTE_VERSION
             }
 
             val versionCode = when {
-                releaseObj.has("version_code") -> releaseObj.optInt("version_code", CURRENT_VERSION_CODE)
-                releaseObj.has("versionCode") -> releaseObj.optInt("versionCode", CURRENT_VERSION_CODE)
-                else -> CURRENT_VERSION_CODE
+                releaseObj.has("version_code") -> releaseObj.optInt("version_code", DEFAULT_REMOTE_VERSION_CODE)
+                releaseObj.has("versionCode") -> releaseObj.optInt("versionCode", DEFAULT_REMOTE_VERSION_CODE)
+                else -> DEFAULT_REMOTE_VERSION_CODE
             }
 
             val releaseDate = when {
