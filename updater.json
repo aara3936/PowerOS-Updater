@@ -24,6 +24,15 @@
       "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v4.4.0\/PowerOS_v4.4.0-BETA.zip",
       "sha256": "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859",
       "changelog": "Power OS 4.4.0-BETA (beta):\n• Direct GitHub pipeline release\n• High-performance chunked auto-resume"
+    },
+    "stable": {
+      "version": "5.0SPX100_C05",
+      "versionCode": 221,
+      "releaseDate": "2026-11-06",
+      "size": "25 MB",
+      "zipUrl": "https:\/\/github.com\/aara3936\/PowerOS-OTA\/releases\/download\/v2.2.0\/PowerOS_v2.2.0-BETA.zip",
+      "sha256": "a69f78326a1112b4e2f893f41ff72d0012bc0b9856f74a0c8411d3311f92e859",
+      "changelog": "Power OS 5.0SPX100_C05 (stable):\n• Direct GitHub pipeline release\n• High-performance chunked auto-resume"
     }
   },
   "announcement": {
